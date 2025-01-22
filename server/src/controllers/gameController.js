@@ -1,8 +1,7 @@
-// server/src/controllers/gameController.js
-import Game from '../models/Game';
-import Player from '../models/Player';
-import Puzzle from '../models/Puzzle';
-import socketService from '../services/socketService';
+const Game = require('../models/Game');
+const Player = require('../models/Player');
+const Puzzle = require('../models/Puzzle');
+const socketService = require('../services/socketService');
 
 class GameController {
   constructor() {
@@ -108,4 +107,5 @@ class GameController {
   }
 }
 
-export default new GameController();
+// Exportar la instancia
+module.exports = new GameController();

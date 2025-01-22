@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from 'mongoose'; // Usamos import en lugar de require
 
 const PlayerSchema = new mongoose.Schema({
   username: {
@@ -43,4 +43,5 @@ PlayerSchema.methods.getProgress = function () {
 // Crear el modelo
 const Player = mongoose.model('Player', PlayerSchema);
 
+// Usamos export default para exportar el modelo en ESM
 export default Player;

@@ -19,7 +19,7 @@ router.use('/player', playerRoutes);
 router.use('/auth', authRoutes);
 
 // Middleware para manejar rutas no encontradas
-router.use((req, res, next) => {
+router.use((req, res) => {
     res.status(404).json({
         error: 'Not Found',
         message: `Route ${req.originalUrl} not found`,

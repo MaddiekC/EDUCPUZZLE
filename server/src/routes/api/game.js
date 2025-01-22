@@ -1,25 +1,11 @@
-// server/src/routes/api/game.js
-import express from 'express';
-import gameController from '../../controllers/gameController';
-
+const express = require('express');
 const router = express.Router();
+const gameController = require('../../controllers/gameController');
 
-// Ruta para crear un nuevo juego
-router.post('/create', gameController.initializeGame);
-
-// Ruta para unirse a un juego existente
+// Rutas del controlador de juegos
+router.post('/initialize', gameController.initializeGame);
 router.post('/join', gameController.joinGame);
+router.post('/action', gameController.handlePlayerAction);
+router.post('/end', gameController.endGame);
 
-// Ruta para obtener el estado actual del juego
-router.get('/:gameId/state', gameController.getGameState);
-
-// Ruta para salir de un juego
-router.post('/leave', gameController.leaveGame);
-
-// Ruta para hacer una jugada (por ejemplo, mover una pieza)
-router.post('/:gameId/action', gameController.handlePlayerAction);
-
-// Ruta para finalizar el juego
-router.post('/:gameId/end', gameController.endGame);
-
-export default router;
+module.exports = router;
