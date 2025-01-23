@@ -1,7 +1,8 @@
-const express = require('express');
-const gameRoutes = require('./api/game');
-const playerRoutes = require('./api/player');
-const authRoutes = require('./api/auth');
+import express from 'express';
+// Corregimos las rutas de importación añadiendo .js y ajustando las rutas
+import gameRoutes from './routes/api/game.js';
+import playerRoutes from './routes/api/player.js';
+import authRoutes from './routes/api/auth.js';
 
 const router = express.Router();
 
@@ -26,4 +27,4 @@ router.use((req, res) => {
     });
 });
 
-module.exports = router;
+export default router;
