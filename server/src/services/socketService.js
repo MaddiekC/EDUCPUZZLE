@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import gameService from './gameService';
+import gameService from './gameService.js'
 
 class SocketService {
   constructor(server) {

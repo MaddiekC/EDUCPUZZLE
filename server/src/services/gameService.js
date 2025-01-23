@@ -1,7 +1,7 @@
-import Game from '../models/Game';
-import Player from '../models/Player';
-import Puzzle from '../models/Puzzle';
-import socketService from './socketService';
+import Game from '../models/Game.js'
+import Player from '../models/Player.js';
+import Puzzle from '../models/Puzzle.js';
+import socketService from './socketService.js';
 
 class GameService {
 

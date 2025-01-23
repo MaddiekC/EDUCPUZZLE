@@ -1,7 +1,7 @@
-const Game = require('../models/Game');
-const Player = require('../models/Player');
-const Puzzle = require('../models/Puzzle');
-const socketService = require('../services/socketService');
+import Game from '../models/Game.js';
+import Player from '../models/Player.js';
+import Puzzle from '../models/Puzzle.js';
+import socketService from '../services/socketService.js';
 
 class GameController {
   constructor() {
@@ -12,16 +12,16 @@ class GameController {
   // Inicia un nuevo juego
   async initializeGame(req, res) {
     try {
-      const { gameId, playerId } = req.body;
-      
+      const { gameId, playerId, username } = req.body; // Asegúrate de enviar 'username'
+
       // Crea una nueva instancia de juego
       if (this.games[gameId]) {
         return res.status(400).json({ message: 'Game ID already exists' });
       }
 
       this.games[gameId] = new Game(gameId);
-      const player = new Player(playerId);
-      
+      const player = new Player({ username, playerId }); // Cambié aquí para pasar el nombre de usuario
+
       // Añade al jugador al juego
       this.games[gameId].joinGame(player);
 
@@ -41,13 +41,14 @@ class GameController {
 
   // Permite a un jugador unirse al juego
   joinGame(req, res) {
-    const { gameId, playerId } = req.body;
+    const { gameId, playerId, username } = req.body; // Asegúrate de enviar 'username'
 
     if (!this.games[gameId]) {
       return res.status(400).json({ message: 'Game not found' });
     }
 
-    const player = new Player(playerId);
+    const player = new Player({ username, playerId }); // Nuevamente, pasando 'username'
+
     this.games[gameId].joinGame(player);
 
     // Actualiza el estado del juego y emite la actualización
@@ -96,7 +97,7 @@ class GameController {
 
     // Finaliza el juego
     this.games[gameId].endGame();
-    
+
     // Emite la actualización del estado final del juego
     this.socketManager.broadcastUpdate(this.games[gameId]);
 
@@ -108,4 +109,4 @@ class GameController {
 }
 
 // Exportar la instancia
-module.exports = new GameController();
+export default new GameController();

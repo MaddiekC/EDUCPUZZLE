@@ -1,10 +1,8 @@
-// src/index.js
-
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import routes from './routes';  // Ahora 'routes' importa correctamente el archivo index.js
-import { connectDatabase } from '../config/database';
+import routes from './routes/index.js';
+import connectDB from '../config/database.js';  // Cambio aquí
 
 // Cargar las variables de entorno
 dotenv.config();
@@ -12,15 +10,23 @@ dotenv.config();
 // Crear una instancia de Express
 const app = express();
 
-// Conectar a la base de datos
-connectDatabase();
-
 // Middleware
 app.use(cors());
-app.use(express.json()); // Para analizar los cuerpos de las solicitudes JSON
+app.use(express.json());
+
+// Conectar a la base de datos
+connectDB();
 
 // Rutas
-app.use('/api', routes); // Esto ahora importará correctamente el archivo index.js en src/routes
+app.use('/api', routes);
+
+// Manejo de rutas no encontradas
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        message: `Route ${req.originalUrl} not found`,
+    });
+});
 
 // Definir el puerto del servidor
 const PORT = process.env.PORT || 5000;

@@ -1,6 +1,6 @@
 // server/src/routes/api/player.js
 import express from 'express';
-import playerController from '../../controllers/playerController';
+import playerController from '../../controllers/playerController.js';
 
 const router = express.Router();
 
