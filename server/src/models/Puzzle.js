@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const PuzzlePieceSchema = new mongoose.Schema({
   id: { type: String, required: true },
-  value: { type: mongoose.Schema.Types.Mixed, required: true }, // Puede ser un número o string
+  value: { type: mongoose.Schema.Types.Mixed, required: true },
   position: {
     x: { type: Number, required: true },
     y: { type: Number, required: true },
@@ -19,6 +19,20 @@ const PuzzleSchema = new mongoose.Schema({
 });
 
 // Métodos para el modelo de Puzzle
+PuzzleSchema.methods.getState = function () {
+  return {
+    id: this.id,
+    difficulty: this.difficulty,
+    equation: this.equation,
+    pieces: this.pieces.map(piece => ({
+      id: piece.id,
+      value: piece.value,
+      position: piece.position,
+      isPlaced: piece.isPlaced,
+    })),
+  };
+};
+
 PuzzleSchema.methods.validateSolution = function (submittedSolution) {
   return submittedSolution === this.solution;
 };

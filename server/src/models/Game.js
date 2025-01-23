@@ -1,8 +1,9 @@
-import Player from './Player.js';  // Asegúrate de que 'Player' se utiliza
+import Player from './Player.js';
 import Puzzle from './Puzzle.js';
 
 class Game {
-  constructor() {
+  constructor(gameId) {
+    this.id = gameId;
     this.gameState = {
       status: 'waiting', // waiting, active, completed
       startTime: null,
@@ -15,7 +16,13 @@ class Game {
   initialize(difficulty) {
     this.gameState.status = 'active';
     this.gameState.startTime = new Date();
-    this.currentPuzzle = new Puzzle(difficulty);
+    this.currentPuzzle = new Puzzle({
+      id: `puzzle-${this.id}`,
+      difficulty,
+      equation: 'Solve this equation',
+      solution: 42, // Puedes personalizar esto
+      pieces: [], // Define las piezas como quieras
+    });
     this.currentPuzzle.shufflePieces();
   }
 
@@ -32,19 +39,19 @@ class Game {
   }
 
   updateGameState() {
-    if (this.currentPuzzle && this.currentPuzzle.validateSolution()) {
+    if (this.currentPuzzle && this.currentPuzzle.checkProgress()) {
       this.gameState.status = 'completed';
       this.gameState.endTime = new Date();
-      this.broadcastState();
     }
   }
 
-  broadcastState() {
-    // Placeholder for broadcasting state to players (por ejemplo, vía WebSocket)
-    console.log('Broadcasting game state:', {
+  getState() {
+    return {
+      id: this.id,
       gameState: this.gameState,
       players: Array.from(this.players.values()).map(player => player.getProgress()),
-    });
+      currentPuzzle: this.currentPuzzle ? this.currentPuzzle.getState() : null,
+    };
   }
 
   resetGame() {
