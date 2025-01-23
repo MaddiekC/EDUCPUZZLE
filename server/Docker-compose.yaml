@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edu_server
+    ports:
+      - "5000:5000" # Expone el puerto 5000 para tu aplicación
+    depends_on:
+      - mongodb # Asegura que MongoDB inicie antes que la app
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/EDUCPUZZLE # URL de conexión a MongoDB
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongo_container
+    ports:
+      - "27017:27017" # Expone el puerto de MongoDB
+    volumes:
+      - mongodb_data:/data/db # Persiste los datos de MongoDB
+
+volumes:
+  mongodb_data:
