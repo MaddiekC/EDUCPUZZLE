@@ -1,9 +1,9 @@
-// server/src/controllers/authController.js
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js'; // Asegúrate de que la extensión .js esté incluida si usas ES Modules
 
 class AuthController {
+  // Registro de usuario
   async register(req, res) {
     const { username, password } = req.body;
     try {
@@ -23,6 +23,7 @@ class AuthController {
     }
   }
 
+  // Inicio de sesión de usuario
   async login(req, res) {
     const { username, password } = req.body;
     try {
@@ -38,7 +39,7 @@ class AuthController {
 
       const token = jwt.sign(
         { userId: user._id, username: user.username },
-        process.env.JWT_SECRET,
+        process.env.JWT_SECRET, // Aquí usamos la variable de entorno
         { expiresIn: '1h' }
       );
 
@@ -48,6 +49,7 @@ class AuthController {
     }
   }
 
+  // Verificación del token
   async verifyToken(req, res) {
     try {
       const token = req.header('Authorization');
