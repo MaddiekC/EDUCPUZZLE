@@ -5,108 +5,134 @@ import socketService from '../services/socketService.js';
 
 class GameController {
   constructor() {
-    this.games = {}; // Aquí mantenemos todos los juegos por su gameId
+    this.games = {};
     this.socketManager = socketService;
+
+    // Vinculación explícita (opcional)
+    this.initializeGame = this.initializeGame.bind(this);
+    this.joinGame = this.joinGame.bind(this);
+    this.handlePlayerAction = this.handlePlayerAction.bind(this);
+    this.endGame = this.endGame.bind(this);
   }
 
   // Inicia un nuevo juego
   async initializeGame(req, res) {
     try {
-      const { gameId, playerId, username } = req.body; // Asegúrate de enviar 'username'
+      const { gameId, playerId, username, difficulty = 'easy' } = req.body;
 
-      // Crea una nueva instancia de juego
       if (this.games[gameId]) {
         return res.status(400).json({ message: 'Game ID already exists' });
       }
 
-      this.games[gameId] = new Game(gameId);
-      const player = new Player({ username, playerId }); // Cambié aquí para pasar el nombre de usuario
+      // Crea un nuevo juego
+      const game = new Game(gameId);
+      const player = new Player({ username, playerId });
 
-      // Añade al jugador al juego
-      this.games[gameId].joinGame(player);
+      game.joinGame(player);
 
-      // Inicia el primer rompecabezas
-      const puzzle = new Puzzle();
-      this.games[gameId].currentPuzzle = puzzle;
+      // Crea e inicializa el rompecabezas
+      const puzzle = new Puzzle({
+        id: `puzzle-${gameId}`,
+        difficulty,
+        equation: 'Solve this equation',
+        solution: 42,
+        pieces: this.generatePuzzlePieces(),
+      });
+      puzzle.shufflePieces();
+      game.currentPuzzle = puzzle;
 
-      // Responde con el estado inicial del juego
+      this.games[gameId] = game;
+
       res.status(200).json({
         message: 'Game initialized successfully',
-        gameState: this.games[gameId].getState(),
+        gameState: game.getState(),
       });
     } catch (err) {
       res.status(500).json({ message: 'Error initializing game', error: err.message });
     }
   }
 
-  // Permite a un jugador unirse al juego
-  joinGame(req, res) {
-    const { gameId, playerId, username } = req.body; // Asegúrate de enviar 'username'
-
-    if (!this.games[gameId]) {
-      return res.status(400).json({ message: 'Game not found' });
-    }
-
-    const player = new Player({ username, playerId }); // Nuevamente, pasando 'username'
-
-    this.games[gameId].joinGame(player);
-
-    // Actualiza el estado del juego y emite la actualización
-    this.games[gameId].updateGameState();
-    this.socketManager.broadcastUpdate(this.games[gameId]);
-
-    res.status(200).json({
-      message: 'Player joined successfully',
-      gameState: this.games[gameId].getState(),
-    });
+  // Genera piezas para el rompecabezas
+  generatePuzzlePieces() {
+    // Ejemplo de piezas generadas
+    return [
+      { id: '1', value: '2', position: { x: 0, y: 0 }, isPlaced: false },
+      { id: '2', value: '4', position: { x: 1, y: 0 }, isPlaced: false },
+      // Más piezas según sea necesario...
+    ];
   }
 
-  // Maneja las acciones del jugador (como mover piezas)
+  // Permite a un jugador unirse al juego
+  joinGame(req, res) {
+    try {
+      const { gameId, playerId, username } = req.body;
+
+      if (!this.games[gameId]) {
+        return res.status(400).json({ message: 'Game not found' });
+      }
+
+      const player = new Player({ username, playerId });
+      this.games[gameId].joinGame(player);
+
+      this.games[gameId].updateGameState();
+      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      res.status(200).json({
+        message: 'Player joined successfully',
+        gameState: this.games[gameId].getState(),
+      });
+    } catch (err) {
+      res.status(500).json({ message: 'Error joining game', error: err.message });
+    }
+  }
+
+  // Maneja acciones del jugador
   handlePlayerAction(req, res) {
-    const { gameId, playerId, action } = req.body;
+    try {
+      const { gameId, playerId, action } = req.body;
 
-    if (!this.games[gameId]) {
-      return res.status(400).json({ message: 'Game not found' });
+      if (!this.games[gameId]) {
+        return res.status(400).json({ message: 'Game not found' });
+      }
+
+      const player = this.games[gameId].players.get(playerId);
+      if (!player) {
+        return res.status(404).json({ message: 'Player not found' });
+      }
+
+      this.games[gameId].processGameLogic(player, action);
+      this.games[gameId].updateGameState();
+      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      res.status(200).json({
+        message: 'Action processed successfully',
+        gameState: this.games[gameId].getState(),
+      });
+    } catch (err) {
+      res.status(500).json({ message: 'Error processing action', error: err.message });
     }
-
-    const player = this.games[gameId].players.get(playerId);
-    if (!player) {
-      return res.status(404).json({ message: 'Player not found' });
-    }
-
-    // Procesa la acción del jugador
-    this.games[gameId].processGameLogic(player, action);
-
-    // Actualiza el estado del juego y emite la actualización
-    this.games[gameId].updateGameState();
-    this.socketManager.broadcastUpdate(this.games[gameId]);
-
-    res.status(200).json({
-      message: 'Action processed successfully',
-      gameState: this.games[gameId].getState(),
-    });
   }
 
   // Termina el juego
   endGame(req, res) {
-    const { gameId } = req.body;
+    try {
+      const { gameId } = req.body;
 
-    if (!this.games[gameId]) {
-      return res.status(400).json({ message: 'Game not found' });
+      if (!this.games[gameId]) {
+        return res.status(400).json({ message: 'Game not found' });
+      }
+
+      this.games[gameId].endGame();
+      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      res.status(200).json({
+        message: 'Game ended successfully',
+        gameState: this.games[gameId].getState(),
+      });
+    } catch (err) {
+      res.status(500).json({ message: 'Error ending game', error: err.message });
     }
-
-    // Finaliza el juego
-    this.games[gameId].endGame();
-
-    // Emite la actualización del estado final del juego
-    this.socketManager.broadcastUpdate(this.games[gameId]);
-
-    res.status(200).json({
-      message: 'Game ended successfully',
-      gameState: this.games[gameId].getState(),
-    });
   }
 }
 
-// Exportar la instancia
 export default new GameController();

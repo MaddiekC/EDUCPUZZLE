@@ -35,6 +35,18 @@ const swaggerOptions = {
         description: 'Servidor local',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
   },
   apis: ['./src/routes/api/*.js'], // Apuntar a tus rutas donde estén definidos los comentarios Swagger
 };
