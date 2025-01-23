@@ -1,7 +1,7 @@
 // server/src/controllers/playerController.js
-import Player from '../models/Player';
-import Game from '../models/Game';
-import socketService from '../services/socketService';
+import Player from '../models/Player.js';
+import Game from '../models/Game.js';
+import socketService from '../services/socketService.js';
 
 class PlayerController {
   constructor() {

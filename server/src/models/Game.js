@@ -1,5 +1,5 @@
-import Player from './Player';  // Asegúrate de que 'Player' se utiliza
-import Puzzle from './Puzzle';  // Asegúrate de que la ruta sea correcta
+import Player from './Player.js';  // Asegúrate de que 'Player' se utiliza
+import Puzzle from './Puzzle.js';
 
 class Game {
   constructor() {
