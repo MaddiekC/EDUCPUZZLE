@@ -10,9 +10,13 @@ class PlayerController {
 
   // Crea un nuevo jugador
   createPlayer(req, res) {
-    const { playerId } = req.body;
+    const { playerId, name } = req.body;
+  
     try {
-      const player = new Player(playerId);
+      // Asegúrate de que 'name' sea usado como 'username'
+      const player = new Player({ username: name, playerId });  // Cambié 'name' por 'username'
+      player.save();  // Guarda el jugador en la base de datos
+  
       res.status(200).json({
         message: 'Player created successfully',
         playerId: player.id,
@@ -21,6 +25,8 @@ class PlayerController {
       res.status(500).json({ message: 'Error creating player', error: err.message });
     }
   }
+  
+  
 
   // Permite a un jugador unirse a un juego
   joinGame(req, res) {

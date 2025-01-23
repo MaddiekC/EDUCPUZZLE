@@ -1,14 +1,14 @@
 import express from 'express';
 import gameRoutes from './api/game.js';
-import playerRoutes from './api/player.js';
+import playerRoutes from './api/player.js';  // Aquí debes importar playerRoutes
 import authRoutes from './api/auth.js';
 
 const router = express.Router();
 
 // Definir las rutas de la API
-router.use('/game', gameRoutes);
-router.use('/player', playerRoutes);
-router.use('/auth', authRoutes);
+router.use('/game', gameRoutes);   // Aquí defines las rutas de juego bajo /api/game
+router.use('/player', playerRoutes); // Aquí defines las rutas de jugadores bajo /api/player
+router.use('/auth', authRoutes);  // Aquí defines las rutas de autenticación bajo /api/auth
 
 // Ruta principal
 router.get('/', (req, res) => {
