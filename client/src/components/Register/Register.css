@@ -14,7 +14,7 @@ html {
 
 body {
     min-height: 100vh;
-    background-image: url('C:\EDUCPUZZLE\client\src\assets\ImagenReg.png'); 
+    background-image: url('../../assets/ImagenReg.png'); 
 }
 
 .App {

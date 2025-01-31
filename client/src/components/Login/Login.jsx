@@ -65,7 +65,7 @@ const Login = () => {
             setPwd("");
             
             // Redirigir al usuario después de iniciar sesión
-            navigate("/Board"); 
+            navigate("/Lobby"); 
 
         } catch (err) {
             if (!err?.response) {

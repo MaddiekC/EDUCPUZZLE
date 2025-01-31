@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Button from '@mui/material/Button';
-import "./Board.css";
+import "./Lobby.css";
 
 const theme = createTheme({
   palette: {
@@ -19,7 +19,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <div>
         <Button variant="contained" color="primary">
-          ¡Botón Personalizado!
+          ¡JUGAR!
         </Button>
       </div>
     </ThemeProvider>
