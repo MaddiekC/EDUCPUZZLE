@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 
 const USER_REGEX = /^[A-z][A-z0-9-_]{3,23}$/;
+const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
 const LOGIN_URL = "/auth/Login";
 
 const Login = () => {
@@ -30,7 +31,10 @@ const Login = () => {
     useEffect(() => {
         setValidName(USER_REGEX.test(user));
     }, [user]);
-
+    
+    useEffect(() => {
+        setValidPwd(PWD_REGEX.test(pwd));
+    }, [pwd]);
     
     useEffect(() => {
         setErrMsg("");
@@ -61,7 +65,7 @@ const Login = () => {
             setPwd("");
             
             // Redirigir al usuario después de iniciar sesión
-            navigate("/dashboard"); 
+            navigate("/Board"); 
 
         } catch (err) {
             if (!err?.response) {
@@ -118,7 +122,7 @@ const Login = () => {
                     onBlur={() => setPwdFocus(false)}
                 />
 
-                <button disabled={!validName || !validPwd}>Sign In</button>
+                <button disabled={!validName || !validPwd ? true : false}>Sign In</button>
             </form>
             <p>
                 Don't have an account yet?{" "}
