@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import "./Lobby.css";
+import "./Board.css";
 import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme({
@@ -14,16 +14,15 @@ const theme = createTheme({
     },
 });
 
-const Lobby = () => {
+const BoardMultiPL = () => {
     const navigate = useNavigate();
     return (
         <ThemeProvider theme={theme}>
-            <div className="lobby-container">
-                <button onClick={() => navigate('/boardSoloPL')}>Solo</button>
-                <button onClick={() => navigate('/boardMultiPL')}>Multijugador</button>
+            <div className="MultiPlayer-container">
+                <button onClick={() => navigate('/lobby')}>Regresar</button>
             </div>
         </ThemeProvider>
     );
-};
+}
 
-export default Lobby;
+export default BoardMultiPL;

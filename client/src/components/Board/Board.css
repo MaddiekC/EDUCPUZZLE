@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito&display=swap');
 
-/* 
+
 * {
     margin: 0;
     padding: 0;
@@ -13,11 +13,16 @@ html {
     color: #fff;
 }
 
-body {
+.SoloPlayer-container {
     min-height: 100vh;
-    background-image: url('../../assets/ImagenLobb.png'); 
+    background-image: url('../../assets/SoloPlayer.png'); 
+    background-size: cover;
+    background-position: center;
+}
+.MultiPlayer-container {
+    min-height: 100vh;
+    background-image: url('../../assets/MultiPlayer.png'); 
     background-size: cover;
     background-position: center;
 }
 
- */

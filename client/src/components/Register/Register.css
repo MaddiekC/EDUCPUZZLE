@@ -14,7 +14,9 @@ html {
 
 body {
     min-height: 100vh;
-    background-image: url('../../assets/ImagenReg.png'); 
+    background-image: url('../../assets/BackLR.png'); 
+    background-size: cover;
+    background-position: center;
 }
 
 .App {

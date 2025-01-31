@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito&display=swap');
 
-/* 
+
 * {
     margin: 0;
     padding: 0;
@@ -13,11 +13,10 @@ html {
     color: #fff;
 }
 
-body {
+.lobby-container {
     min-height: 100vh;
-    background-image: url('../../assets/ImagenLobb.png'); 
+    background-image: url('../../assets/BackgLobby.png'); 
     background-size: cover;
     background-position: center;
 }
 
- */

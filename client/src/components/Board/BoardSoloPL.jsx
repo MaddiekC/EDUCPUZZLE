@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import Button from '@mui/material/Button';
 import "./Board.css";
+import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme({
   palette: {
@@ -14,16 +14,15 @@ const theme = createTheme({
   },
 });
 
-function App() {
+const BoardSoloPL = () => {
+  const navigate = useNavigate();
   return (
     <ThemeProvider theme={theme}>
-      <div>
-        <Button variant="contained" color="primary">
-          ¡Botón Personalizado!
-        </Button>
+      <div className="SoloPlayer-container">
+        <button onClick={() => navigate('/lobby')}>Regresar</button>
       </div>
     </ThemeProvider>
   );
 }
 
-export default App;
+export default BoardSoloPL;
