@@ -14,7 +14,7 @@ html {
 
 body {
     min-height: 100vh;
-    background-color: rgb(169, 26, 26);
+    background-image: url('C:\EDUCPUZZLE\client\src\assets\ImagenReg.png'); 
 }
 
 .App {
@@ -32,7 +32,8 @@ section {
     min-height: 400px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
+    margin: auto;
     padding: 1rem;
     background-color: rgba(0,0,0,0.4);
 }
