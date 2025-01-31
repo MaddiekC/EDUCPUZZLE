@@ -41,6 +41,7 @@ section {
 form {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     justify-content: space-evenly;
     flex-grow: 1;
     padding-bottom: 1rem;

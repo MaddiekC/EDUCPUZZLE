@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Button from '@mui/material/Button';
-
+import "./Board.css";
 const theme = createTheme({
   palette: {
     primary: {
