@@ -1,57 +1,61 @@
 // client/src/components/BoardCell.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import PuzzleBoard from '../Puzzle/PuzzleBoard';
-import { AlertCircle, CheckCircle2, Trophy } from 'lucide-react';
-import './BoardCell.css';
+import React, { useState, useEffect, useCallback } from "react";
+import PuzzleBoard from "../Puzzle/PuzzleBoard";
+import { AlertCircle, CheckCircle2, Trophy } from "lucide-react";
+import "./BoardCell.css";
 
 const BoardCell = () => {
   // Estados principales
   const [equation, setEquation] = useState({
     left: 9,
-    operator: 'x',
-    right: '?',
-    result: 81
+    operator: "x",
+    right: "?",
+    result: 81,
   });
-  
+
   const [players, setPlayers] = useState([
-    { id: 1, name: 'Jhon', score: 0, streak: 0 },
-    { id: 2, name: 'Samir', score: 0, streak: 0 }
+    { id: 1, name: "Jhon", score: 0, streak: 0 },
+    { id: 2, name: "Samir", score: 0, streak: 0 },
   ]);
-  
+
   const [currentTurn, setCurrentTurn] = useState(0);
   const [selectedNumber, setSelectedNumber] = useState(null);
-  const [showFeedback, setShowFeedback] = useState({ show: false, isCorrect: false });
+  const [showFeedback, setShowFeedback] = useState({
+    show: false,
+    isCorrect: false,
+  });
   const [gameStats, setGameStats] = useState({
     totalMoves: 0,
     correctAnswers: 0,
-    bestStreak: 0
+    bestStreak: 0,
   });
 
   // Números disponibles con metadata
   const availableNumbers = Array.from({ length: 9 }, (_, i) => ({
     value: i + 1,
     isDisabled: false,
-    isSelected: selectedNumber === i + 1
+    isSelected: selectedNumber === i + 1,
   }));
 
   // Generador de ecuaciones mejorado
   const generateNewEquation = useCallback(() => {
-    const operators = ['x', '+', '-'];
-    const randomOperator = operators[Math.floor(Math.random() * operators.length)];
+    const operators = ["x", "+", "-"];
+    const randomOperator =
+      operators[Math.floor(Math.random() * operators.length)];
     let newLeft, newRight, result;
 
     do {
       newLeft = Math.floor(Math.random() * 9) + 1;
       newRight = Math.floor(Math.random() * 9) + 1;
-      
+
       switch (randomOperator) {
-        case 'x':
+        case "x":
           result = newLeft * newRight;
           break;
-        case '+':
+        case "+":
           result = newLeft + newRight;
           break;
-        case '-':
+        case "-":
           // Aseguramos que el resultado sea positivo
           if (newLeft < newRight) [newLeft, newRight] = [newRight, newLeft];
           result = newLeft - newRight;
@@ -64,45 +68,50 @@ const BoardCell = () => {
     setEquation({
       left: newLeft,
       operator: randomOperator,
-      right: '?',
-      result: result
+      right: "?",
+      result: result,
     });
   }, []);
 
   // Validación de respuestas mejorada
-  const validateAnswer = useCallback((selected) => {
-    let correctAnswer;
-    
-    switch (equation.operator) {
-      case 'x':
-        correctAnswer = equation.left * selected === equation.result;
-        break;
-      case '+':
-        correctAnswer = equation.left + selected === equation.result;
-        break;
-      case '-':
-        correctAnswer = equation.left - selected === equation.result;
-        break;
-      default:
-        correctAnswer = false;
-    }
+  const validateAnswer = useCallback(
+    (selected) => {
+      let correctAnswer;
 
-    return correctAnswer;
-  }, [equation]);
+      switch (equation.operator) {
+        case "x":
+          correctAnswer = equation.left * selected === equation.result;
+          break;
+        case "+":
+          correctAnswer = equation.left + selected === equation.result;
+          break;
+        case "-":
+          correctAnswer = equation.left - selected === equation.result;
+          break;
+        default:
+          correctAnswer = false;
+      }
+
+      return correctAnswer;
+    },
+    [equation]
+  );
 
   // Manejo de selección de números
   const handleNumberSelect = async (number) => {
     setSelectedNumber(number);
     const isCorrect = validateAnswer(number);
-    
+
     setShowFeedback({ show: true, isCorrect });
-    
+
     // Actualizar estadísticas
-    setGameStats(prev => ({
+    setGameStats((prev) => ({
       totalMoves: prev.totalMoves + 1,
       correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
-      bestStreak: Math.max(prev.bestStreak, 
-        isCorrect ? players[currentTurn].streak + 1 : 0)
+      bestStreak: Math.max(
+        prev.bestStreak,
+        isCorrect ? players[currentTurn].streak + 1 : 0
+      ),
     }));
 
     if (isCorrect) {
@@ -112,17 +121,17 @@ const BoardCell = () => {
           return {
             ...player,
             score: player.score + 10,
-            streak: player.streak + 1
+            streak: player.streak + 1,
           };
         }
         return player;
       });
-      
+
       setPlayers(updatedPlayers);
-      
+
       // Esperar a que se muestre el feedback
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Generar nueva ecuación y cambiar turno
       generateNewEquation();
       setCurrentTurn((prevTurn) => (prevTurn + 1) % players.length);
@@ -154,9 +163,9 @@ const BoardCell = () => {
       {/* Sección de jugadores */}
       <div className="players-section">
         {players.map((player, index) => (
-          <div 
-            key={player.id} 
-            className={`player-card ${currentTurn === index ? 'active' : ''}`}
+          <div
+            key={player.id}
+            className={`player-card ${currentTurn === index ? "active" : ""}`}
           >
             <h3 className="player-name">{player.name}</h3>
             <span className="player-score">{player.score}</span>
@@ -180,7 +189,11 @@ const BoardCell = () => {
 
       {/* Feedback visual */}
       {showFeedback.show && (
-        <div className={`feedback-message ${showFeedback.isCorrect ? 'correct' : 'wrong'}`}>
+        <div
+          className={`feedback-message ${
+            showFeedback.isCorrect ? "correct" : "wrong"
+          }`}
+        >
           {showFeedback.isCorrect ? (
             <CheckCircle2 className="feedback-icon" />
           ) : (
@@ -194,9 +207,14 @@ const BoardCell = () => {
         {availableNumbers.map(({ value, isDisabled, isSelected }) => (
           <button
             key={value}
-            className={`number-button ${isSelected ? 'selected' : ''} 
-                       ${showFeedback.show && isSelected ? 
-                         (showFeedback.isCorrect ? 'correct-answer' : 'wrong-answer') : ''}`}
+            className={`number-button ${isSelected ? "selected" : ""} 
+                       ${
+                         showFeedback.show && isSelected
+                           ? showFeedback.isCorrect
+                             ? "correct-answer"
+                             : "wrong-answer"
+                           : ""
+                       }`}
             onClick={() => handleNumberSelect(value)}
             disabled={isDisabled || showFeedback.show}
           >
@@ -216,7 +234,7 @@ const BoardCell = () => {
       {/* Tablero del puzzle */}
       <div className="puzzle-section">
         <h2>Puzzle</h2>
-        <PuzzleBoard />
+        <PuzzleBoard correctAnswersCount={gameStats.correctAnswers} />
       </div>
     </div>
   );

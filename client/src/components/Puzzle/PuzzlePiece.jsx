@@ -1,4 +1,3 @@
-// client/src/components/Puzzle/PuzzlePiece.jsx
 import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import './Puzzle.css';
@@ -12,9 +11,11 @@ const PuzzlePiece = forwardRef(({
   correctPosition,
   onDragStart,
   onDrop,
+  onDragOver,
   draggable = true
 }, ref) => {
-  // Calcular la posición en la cuadrícula
+  // Calcula la posición en la cuadrícula solo para cuando se use en el tablero.
+  // En inventario se puede ignorar o redefinir mediante CSS.
   const gridRow = Math.floor((currentPosition - 1) / 3) + 1;
   const gridColumn = ((currentPosition - 1) % 3) + 1;
 
@@ -29,10 +30,9 @@ const PuzzlePiece = forwardRef(({
         '--correct-column': ((correctPosition - 1) % 3) + 1,
       }}
       draggable={draggable}
-      onDragStart={(e) => onDragStart(e, id)}
-      onDrop={(e) => onDrop(e, id)}
-      onDragOver={(e) => e.preventDefault()}
-      onDragEnter={(e) => e.preventDefault()}
+      onDragStart={(e) => onDragStart && onDragStart(e, id)}
+      onDrop={(e) => onDrop && onDrop(e, id)}
+      onDragOver={(e) => onDragOver && onDragOver(e)}
       data-position={currentPosition}
       data-value={value}
     >
@@ -69,8 +69,9 @@ PuzzlePiece.propTypes = {
   isCorrect: PropTypes.bool,
   currentPosition: PropTypes.number.isRequired,
   correctPosition: PropTypes.number.isRequired,
-  onDragStart: PropTypes.func.isRequired,
-  onDrop: PropTypes.func.isRequired,
+  onDragStart: PropTypes.func,
+  onDrop: PropTypes.func,
+  onDragOver: PropTypes.func,
   draggable: PropTypes.bool,
 };
 
