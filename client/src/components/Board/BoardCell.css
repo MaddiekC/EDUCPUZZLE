@@ -1,0 +1,208 @@
+/* client/src/components/BoardCell.css */
+:root {
+    --primary: #3b82f6;
+    --primary-dark: #1d4ed8;
+    --success: #22c55e;
+    --error: #ef4444;
+    --text-light: #f8fafc;
+    --text-dark: #1e293b;
+    --background: #ffffff;
+    --card-background: #f1f5f9;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --border-radius: 12px;
+  }
+  
+  /* Contenedor principal */
+  .game-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--background);
+  }
+  
+  /* Sección de jugadores */
+  .players-section {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  
+  .player-card {
+    flex: 1;
+    min-width: 250px;
+    padding: 1.5rem;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease;
+  }
+  
+  .player-card.active {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border: 2px solid var(--primary);
+  }
+  
+  .player-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+  
+  .player-score {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: block;
+    text-align: center;
+    margin: 1rem 0;
+  }
+  
+  /* Sección de ecuación */
+  .equation-section {
+    background: var(--card-background);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+  }
+  
+  .equation-display {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .equation-unknown {
+    color: var(--primary);
+    animation: pulse 2s infinite;
+  }
+  
+  /* Sección de números */
+  .numbers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .number-button {
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding: 1rem;
+    border: none;
+    background: var(--primary);
+    color: var(--text-light);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .number-button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .number-button:active {
+    transform: translateY(0);
+  }
+  
+  .number-button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: translateX(-100%);
+    transition: 0.5s;
+  }
+  
+  .number-button:hover::after {
+    transform: translateX(100%);
+  }
+  
+  /* Estados de respuesta */
+  .correct-answer {
+    background: var(--success) !important;
+    animation: correctAnswer 0.5s ease;
+  }
+  
+  .wrong-answer {
+    background: var(--error) !important;
+    animation: wrongAnswer 0.3s ease;
+  }
+  
+  /* Animaciones */
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes correctAnswer {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes wrongAnswer {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+  
+  /* Diseño responsivo */
+  @media (max-width: 768px) {
+    .game-container {
+      padding: 1rem;
+    }
+  
+    .equation-display {
+      font-size: 2rem;
+    }
+  
+    .numbers-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  
+    .player-card {
+      min-width: 100%;
+    }
+  }
+  
+  /* Transiciones suaves globales */
+  * {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Efectos de accesibilidad */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+  
+  /* Modo oscuro */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0f172a;
+      --card-background: #1e293b;
+      --text-light: #f8fafc;
+      --text-dark: #f1f5f9;
+    }
+  }

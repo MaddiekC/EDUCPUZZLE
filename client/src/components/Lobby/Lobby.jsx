@@ -21,6 +21,7 @@ const Lobby = () => {
             <div className="lobby-container">
                 <button onClick={() => navigate('/boardSoloPL')}>Solo</button>
                 <button onClick={() => navigate('/boardMultiPL')}>Multijugador</button>
+                <button onClick={() => navigate('/boardCell')}>Board Cell</button>
             </div>
         </ThemeProvider>
     );
