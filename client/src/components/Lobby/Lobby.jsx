@@ -60,7 +60,8 @@ const Lobby = () => {
                         <Button
                             variant="contained"
                             color="success"
-                            onClick={() => navigate(`/joinGame/${gameId}`)}
+                            //onClick={() => navigate(`/BoardCell/${gameId}`)}
+                            onClick={() => navigate(`/BoardCell`)}
                             disabled={!gameId} // Deshabilita el botón si no se ha ingresado un ID
                         >
                             Unirse a Partida
