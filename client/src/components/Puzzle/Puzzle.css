@@ -437,3 +437,28 @@ html, body {
     font-size: 1.25rem;
   }
 }
+
+.complete-image {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.complete-image img {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #fff;
+}
+.inventory-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px;
+}
+
+.inventory-piece {
+  width: 80px;
+  height: 80px;
+  /* Puedes agregar un borde o fondo temporal para ver la posición */
+  border: 1px solid #fff;
+}
