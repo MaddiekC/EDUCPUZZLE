@@ -1,3 +1,4 @@
+/* global localStorage */
 import React, { useRef, useState, useEffect } from "react";
 import { faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -56,8 +57,15 @@ const Login = () => {
         }
       );
 
-      const accessToken = response?.data?.accessToken; // Verifica si el token está en data
+      // Suponemos que el backend envía "token" y "userId"
+      const accessToken = response?.data?.token; 
+      const userId = response?.data?.userId;
       console.log("Token recibido:", accessToken);
+
+      // Guardamos el token y el nombre de usuario en el localStorage
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("username", user); 
+      if (userId) localStorage.setItem("userId", userId);
 
       setUser("");
       setPwd("");

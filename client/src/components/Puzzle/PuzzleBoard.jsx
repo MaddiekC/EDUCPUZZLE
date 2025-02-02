@@ -1,3 +1,4 @@
+/* global localStorage */
 // client/src/components/PuzzleBoard.jsx
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
@@ -41,12 +42,14 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
   useEffect(() => {
     if (correctAnswersCount < 2) return;
     const piezasNecesarias = 1 + Math.floor((correctAnswersCount - 2) / 3);
-    setUnlockedPieces(prev => {
+    setUnlockedPieces((prev) => {
       const missing = piezasNecesarias - prev.length;
       if (missing > 0) {
         // Ahora solo se filtran las piezas que ya están en unlockedPieces
-        const availableNumbers = Array.from({ length: 9 }, (_, i) => i + 1)
-          .filter(num => !prev.includes(num));
+        const availableNumbers = Array.from(
+          { length: 9 },
+          (_, i) => i + 1
+        ).filter((num) => !prev.includes(num));
         const piezasAAgregar = availableNumbers
           .sort(() => Math.random() - 0.5)
           .slice(0, missing);
@@ -55,7 +58,6 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
       return prev;
     });
   }, [correctAnswersCount]);
-  
 
   const handleDragStartFromInventory = (e, piece) => {
     e.dataTransfer.setData("text/plain", piece.toString());
