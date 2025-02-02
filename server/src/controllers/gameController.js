@@ -6,7 +6,7 @@ import socketService from '../services/socketService.js';
 class GameController {
   constructor() {
     this.games = {};
-    this.socketManager = socketService;
+    this.socketManager = socketService;  // Asegúrate de que se esté utilizando el socketService correctamente
 
     // Vinculación explícita (opcional)
     this.initializeGame = this.initializeGame.bind(this);
@@ -43,6 +43,9 @@ class GameController {
 
       this.games[gameId] = game;
 
+      // Emite la actualización a todos los jugadores del juego
+      this.socketManager.broadcastUpdate(gameId, 'gameStateUpdated', game.getState());
+
       res.status(200).json({
         message: 'Game initialized successfully',
         gameState: game.getState(),
@@ -54,11 +57,9 @@ class GameController {
 
   // Genera piezas para el rompecabezas
   generatePuzzlePieces() {
-    // Ejemplo de piezas generadas
     return [
       { id: '1', value: '2', position: { x: 0, y: 0 }, isPlaced: false },
       { id: '2', value: '4', position: { x: 1, y: 0 }, isPlaced: false },
-      // Más piezas según sea necesario...
     ];
   }
 
@@ -75,7 +76,9 @@ class GameController {
       this.games[gameId].joinGame(player);
 
       this.games[gameId].updateGameState();
-      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      // Emite la actualización a todos los jugadores del juego
+      this.socketManager.broadcastUpdate(gameId, 'gameStateUpdated', this.games[gameId].getState());
 
       res.status(200).json({
         message: 'Player joined successfully',
@@ -102,7 +105,9 @@ class GameController {
 
       this.games[gameId].processGameLogic(player, action);
       this.games[gameId].updateGameState();
-      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      // Emite la actualización a todos los jugadores del juego
+      this.socketManager.broadcastUpdate(gameId, 'gameStateUpdated', this.games[gameId].getState());
 
       res.status(200).json({
         message: 'Action processed successfully',
@@ -123,7 +128,9 @@ class GameController {
       }
 
       this.games[gameId].endGame();
-      this.socketManager.broadcastUpdate(this.games[gameId]);
+
+      // Emite la actualización a todos los jugadores del juego
+      this.socketManager.broadcastUpdate(gameId, 'gameStateUpdated', this.games[gameId].getState());
 
       res.status(200).json({
         message: 'Game ended successfully',

@@ -1,22 +1,21 @@
-// services/socket/socketService.js
+// socketService.js
 import io from 'socket.io-client';
 
-class SocketService {
-  constructor() {
-    this.socket = io('http://localhost:4000');
-  }
+const socket = io('http://localhost:4000');
 
-  subscribeToGameUpdates(gameId, callback) {
-    this.socket.on(`gameUpdate-${gameId}`, callback);
+const socketService = {
+  subscribeToGameUpdates: (gameId, callback) => {
+    socket.on(`gameUpdate-${gameId}`, callback);
     return () => {
-      this.socket.off(`gameUpdate-${gameId}`, callback);
+      socket.off(`gameUpdate-${gameId}`, callback);
     };
-  }
+  },
 
-  emit(event, data) {
-    this.socket.emit(event, data);
-  }
-}
+  emit: (event, data) => {
+    socket.emit(event, data);
+  },
 
-const socketService = new SocketService();
+  socket
+};
+
 export default socketService;

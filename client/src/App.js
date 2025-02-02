@@ -1,3 +1,4 @@
+//client\src\App.js
 import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom';

@@ -1,13 +1,13 @@
 // server/src/routes/api/game.js
-import express from 'express';
-import gameController from '../../controllers/gameController.js';
-import Player from '../../models/Player.js';
+import express from "express";
+import gameController from "../../controllers/gameController.js";
+import Player from "../../models/Player.js";
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/game/players:
+ * /game/players:
  *   get:
  *     summary: Obtiene todos los jugadores.
  *     tags: [Game]
@@ -17,18 +17,20 @@ const router = express.Router();
  *       500:
  *         description: Error en el servidor.
  */
-router.get('/players', async (req, res) => {
+router.get("/players", async (req, res) => {
   try {
     const players = await Player.find();
     res.status(200).json(players);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching players', error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching players", error: error.message });
   }
 });
 
 /**
  * @swagger
- * /api/game/initialize:
+ * /game/initialize:
  *   post:
  *     summary: Inicializa un nuevo juego.
  *     tags: [Game]
@@ -36,11 +38,11 @@ router.get('/players', async (req, res) => {
  *       200:
  *         description: Juego inicializado exitosamente.
  */
-router.post('/initialize', gameController.initializeGame);
+router.post("/initialize", gameController.initializeGame);
 
 /**
  * @swagger
- * /api/game/join:
+ * /game/join:
  *   post:
  *     summary: Un jugador se une a un juego.
  *     tags: [Game]
@@ -48,11 +50,11 @@ router.post('/initialize', gameController.initializeGame);
  *       200:
  *         description: Jugador añadido al juego.
  */
-router.post('/join', gameController.joinGame);
+router.post("/join", gameController.joinGame);
 
 /**
  * @swagger
- * /api/game/action:
+ * /game/action:
  *   post:
  *     summary: Maneja una acción de un jugador.
  *     tags: [Game]
@@ -60,11 +62,11 @@ router.post('/join', gameController.joinGame);
  *       200:
  *         description: Acción procesada exitosamente.
  */
-router.post('/action', gameController.handlePlayerAction);
+router.post("/action", gameController.handlePlayerAction);
 
 /**
  * @swagger
- * /api/game/end:
+ * /game/end:
  *   post:
  *     summary: Finaliza un juego.
  *     tags: [Game]
@@ -72,6 +74,6 @@ router.post('/action', gameController.handlePlayerAction);
  *       200:
  *         description: Juego finalizado exitosamente.
  */
-router.post('/end', gameController.endGame);
+router.post("/end", gameController.endGame);
 
 export default router;
