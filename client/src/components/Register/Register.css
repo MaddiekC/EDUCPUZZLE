@@ -1,118 +1,180 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
 
+/* Reset básico */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html {
-    font-family: 'Nunito', sans-serif;
-    font-size: 22px;
-    color: #fff;
-}
-
+/* Base de tipografía y fondo general */
+html,
 body {
-    min-height: 100vh;
-    background-image: url('../../assets/BackLR.png'); 
-    background-size: cover;
-    background-position: center;
+  min-height: 100vh;
+  font-family: 'Nunito', sans-serif;
+  color: #fff;
+  /* Fondo degradado oscuro con matices azules */
+  background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77);
 }
 
+/* Contenedor principal de la App */
 .App {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; 
+  min-height: 100vh;
   padding: 1rem 0.5rem;
 }
 
+/* Sección con efecto glassmorphism (similar a un menú) */
 section {
-    width: 100%;
-    max-width: 420px;
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin: auto;
-    padding: 1rem;
-    background-color: rgba(0,0,0,0.4);
+  width: 100%;
+  max-width: 420px;
+  min-height: 400px;
+  margin: auto;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7);
+  animation: fadeIn 1s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
+/* Títulos con tipografía futurista y sombra */
+section h1,
+section h2 {
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  margin-bottom: 1rem;
+}
+
+/* Formulario interno */
 form {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    justify-content: space-evenly;
-    flex-grow: 1;
-    padding-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  flex-grow: 1;
+  padding-bottom: 1rem;
 }
 
-a, a:visited {
-    color: #fff;
+/* Estilos para enlaces */
+a,
+a:visited {
+  color: #fff;
+  text-decoration: none;
 }
 
+/* Inputs, botones y textarea con estilo uniforme */
 input[type="text"],
 input[type="password"],
 button,
 textarea {
   font-family: 'Nunito', sans-serif;
-  font-size: 22px;
-  padding: 0.25rem;
+  font-size: 1.2rem;
+  padding: 0.5rem;
   border-radius: 0.5rem;
-}
-
-label,
-button {
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  text-align: center;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
   margin-top: 1rem;
 }
 
-button {
-  padding: 0.5rem;
+/* Efecto hover para inputs y botones */
+button:hover,
+input[type="text"]:hover,
+input[type="password"]:hover,
+textarea:hover {
+  transform: scale(1.02);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
+/* Botones: mayor énfasis en el cursor y el padding */
+button {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+/* Instrucciones con estilo distintivo */
 .instructions {
-    font-size: 0.75rem;
-    border-radius: 0.5rem;
-    background: #000;
-    color: #fff;
-    padding: 0.25rem;
-    position: relative;
-    bottom: -10px;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+  background: #000;
+  color: #fff;
+  padding: 0.25rem;
+  position: relative;
+  bottom: -10px;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .instructions > svg {
-    margin-right: 0.25rem;
+  margin-right: 0.25rem;
 }
 
-.offscreen {
-    position: absolute;
-    left: -9999px;
-}
-
-.hide {
-    display: none;
-}
-
+/* Clases para validación de formularios */
 .valid {
-    color: limegreen;
-    margin-left: 0.25rem;
+  color: limegreen;
+  margin-left: 0.25rem;
 }
 
 .invalid {
-    color: red;
-    margin-left: 0.25rem;
+  color: red;
+  margin-left: 0.25rem;
 }
 
+/* Mensajes de error */
 .errmsg {
-    background-color: lightpink;
-    color: firebrick;
-    font-weight: bold;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
+  background-color: lightpink;
+  color: firebrick;
+  font-weight: bold;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Utilidades */
+.offscreen {
+  position: absolute;
+  left: -9999px;
+}
+
+.hide {
+  display: none;
 }
 
 .line {
-    display: inline-block;
+  display: inline-block;
+}
+
+/* Animación de entrada para el contenedor */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Adaptación para dispositivos móviles */
+@media (max-width: 600px) {
+  section {
+    padding: 1rem;
+  }
+  
+  html {
+    font-size: 18px;
+  }
 }
