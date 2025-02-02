@@ -1,6 +1,7 @@
 /* global localStorage */
 import React, { useEffect, useState, useCallback } from "react";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import socketService from "../../services/socket/socketService";
 import "./Lobby.css"; // Se importa el CSS correspondiente
@@ -134,9 +135,10 @@ const ChatBox = () => {
 /**
  * Lobby
  * Componente principal del lobby que integra las secciones: header, listado de jugadores,
- * temporizador, botón de inicio y chat.
+ * temporizador, botón de inicio, chat y botón para salir de la sala.
  */
 const Lobby = ({ gameId }) => {
+  const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -201,14 +203,30 @@ const Lobby = ({ gameId }) => {
    * Lógica para iniciar el juego. Se activa solo si hay al menos dos jugadores.
    */
   const handleStartGame = () => {
-    // Aquí se implementaría la lógica para iniciar el juego, por ejemplo,
-    // emitiendo un evento vía socket o navegando a la vista del juego.
     console.log("Iniciando duelo con jugadores:", players);
+    // Aquí se puede emitir un evento o redirigir a la vista del juego
+  };
+
+  /**
+   * handleLeaveLobby
+   * Lógica para salir de la sala. Puede incluir la emisión de un evento vía socket
+   * y la redirección al menú principal.
+   */
+  const handleLeaveLobby = () => {
+    // Por ejemplo, emitir un evento para notificar que el jugador abandona la sala
+    socketService.emit("leaveLobby", { gameId });
+    // Redirigir al menú o página principal
+    navigate("/menu");
   };
 
   return (
     <div className="lobby-container">
       <LobbyHeader gameId={gameId} />
+      <div className="top-controls">
+        <button className="leave-lobby-button" onClick={handleLeaveLobby}>
+          Salir de la Sala
+        </button>
+      </div>
       {error && <div className="error-message">{error}</div>}
       <WaitingMessage playersCount={players.length} />
       <div className="waiting-timer">
