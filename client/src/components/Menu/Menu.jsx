@@ -60,8 +60,8 @@ const Menu = () => {
 
       console.log("Juego creado:", response.data);
 
-      // Redirigir al usuario al tablero del juego utilizando el gameId creado
-      navigate(`/BoardCell/${gameId}`);
+      // Redirigir al usuario al Lobby, pasando el gameId por la URL
+      navigate(`/lobby/${gameId}`);
     } catch (error) {
       console.error("Error al crear partida:", error);
       // Aquí puedes mostrar un mensaje de error al usuario si lo deseas
@@ -87,8 +87,8 @@ const Menu = () => {
       );
       console.log("Unido a la partida:", response.data);
 
-      // Redirigir al usuario al tablero de la partida
-      navigate(`/BoardCell/${gameIdInput}`);
+      // Redirigir al usuario al Lobby de la partida
+      navigate(`/lobby/${gameIdInput}`);
     } catch (error) {
       console.error("Error al unirse a la partida:", error);
       // Aquí puedes mostrar un mensaje de error al usuario si lo deseas

@@ -1,26 +1,37 @@
-// client/src/App.js
-
 import React from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom';
 import Register from './components/Register/Register';
-import Login from './components/Login/Login'; 
-import BoardSoloPL from './components/Board/BoardSoloPL'; 
-import BoardMultiPL from './components/Board/BoardMultiPL'; 
+import Login from './components/Login/Login';
+import BoardSoloPL from './components/Board/BoardSoloPL';
+import BoardMultiPL from './components/Board/BoardMultiPL';
 import BoardCell from './components/Board/BoardCell';
-import Menu from './components/Menu/Menu'; 
+import Menu from './components/Menu/Menu';
+import ProtectedRoute from './components/ProtectedRoute';
+import Lobby from './components/Lobby/Lobby';
+
+// Mover el LobbyWrapper antes del componente App
+const LobbyWrapper = () => {
+  const { gameId } = useParams();
+  return <Lobby gameId={gameId} />;
+};
 
 function App() {
-  console.log('Renderizando BoardCell...');
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/boardSoloPL" element={<BoardSoloPL />} />
-        <Route path="/boardMultiPL" element={<BoardMultiPL />} />
-        <Route path="/boardCell" element={<BoardCell />} />
+        {/* Rutas protegidas */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/boardSoloPL" element={<BoardSoloPL />} />
+          <Route path="/boardMultiPL" element={<BoardMultiPL />} />
+          {/* Ruta para el BoardCell con parámetro gameId */}
+          <Route path="/boardCell/:gameId" element={<BoardCell />} />
+          {/* Ruta para el Lobby con parámetro gameId */}
+          <Route path="/lobby/:gameId" element={<LobbyWrapper />} />
+        </Route>
       </Routes>
     </Router>
   );
