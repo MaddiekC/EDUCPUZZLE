@@ -1,5 +1,6 @@
 /* global localStorage */
 import React, { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Button from "@mui/material/Button";
@@ -21,8 +22,11 @@ const Menu = () => {
   const [gameIdInput, setGameIdInput] = useState("");
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
+  const [players, setPlayers] = useState([]);  // Estado para la lista de jugadores
+  const [showPlayers, setShowPlayers] = useState(false);  // Estado para mostrar la lista de jugadores
 
   const username = localStorage.getItem("username") || "Jugador";
+  const token = localStorage.getItem("accessToken");
 
   const generateGameId = () => {
     return "game-" + Date.now();
@@ -31,7 +35,6 @@ const Menu = () => {
   const handleCrearPartida = async () => {
     try {
       const gameId = generateGameId();
-      const token = localStorage.getItem("accessToken");
       const playerId = localStorage.getItem("userId");
       const difficulty = "easy";
   
@@ -89,7 +92,6 @@ const Menu = () => {
         throw new Error("ID de partida inválido. Debe tener el formato 'game-número'");
       }
 
-      const token = localStorage.getItem("accessToken");
       const playerId = localStorage.getItem("userId");
 
       const response = await axios.post(
@@ -112,6 +114,21 @@ const Menu = () => {
         errorMessage = "La partida no existe";
       }
       setError(errorMessage);
+      setShowError(true);
+    }
+  };
+
+  // Función para obtener la lista de jugadores
+  const fetchPlayers = async () => {
+    try {
+      const response = await axios.get("/game/players", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setPlayers(response.data);
+    } catch (err) {
+      setError("Error al obtener jugadores");
       setShowError(true);
     }
   };
@@ -167,6 +184,30 @@ const Menu = () => {
                 Unirse a Partida
               </Button>
             </div>
+
+            {/* Botón para cargar jugadores */}
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => {
+                setShowPlayers(!showPlayers);
+                if (!showPlayers) fetchPlayers();  // Llamar a la API solo si se va a mostrar la lista
+              }}
+            >
+              Ver Jugadores
+            </Button>
+
+            {/* Mostrar jugadores */}
+            {showPlayers && (
+              <div>
+                <h3>Jugadores Activos</h3>
+                <ul>
+                  {players.map((player) => (
+                    <li key={player._id}>{player.username} - Score: {player.score}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
