@@ -5,6 +5,7 @@ import PropTypes from "prop-types";
 import { Package, Shuffle, RotateCcw, Crown } from "lucide-react";
 import PuzzlePiece from "./PuzzlePiece";
 import "./Puzzle.css";
+import catImage from "../../assets/cat.jpg";
 
 const PuzzleBoard = ({ correctAnswersCount }) => {
   const getBestTime = () => {
@@ -45,22 +46,23 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
     setUnlockedPieces((prev) => {
       const missing = piezasNecesarias - prev.length;
       if (missing > 0) {
-        // Ahora solo se filtran las piezas que ya están en unlockedPieces
-        const availableNumbers = Array.from(
-          { length: 9 },
-          (_, i) => i + 1
-        ).filter((num) => !prev.includes(num));
-        const piezasAAgregar = availableNumbers
-          .sort(() => Math.random() - 0.5)
-          .slice(0, missing);
+        // Genera un array de objetos con id del 1 al 9 y descarta los ya desbloqueados
+        const availablePieces = Array.from({ length: 9 }, (_, i) => ({ id: i + 1 }))
+          .filter((piece) => !prev.some((p) => p.id === piece.id));
+        // Mezcla el array de forma aleatoria y toma las que hacen falta
+        const piezasAAgregar = availablePieces.sort(() => Math.random() - 0.5).slice(0, missing);
         return prev.concat(piezasAAgregar);
       }
       return prev;
     });
   }, [correctAnswersCount]);
 
-  const handleDragStartFromInventory = (e, piece) => {
-    e.dataTransfer.setData("text/plain", piece.toString());
+  const handleDragStartFromInventory = (e, pieceObj) => {
+    if (!pieceObj || pieceObj.id === undefined) {
+      console.error("pieceObj es undefined", pieceObj);
+      return;
+    }
+    e.dataTransfer.setData("text/plain", pieceObj.id.toString());
   };
 
   const handleDragStartFromCell = (e, index) => {
@@ -83,16 +85,19 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
   const handleCellDrop = (e, index) => {
     e.preventDefault();
     const pieceStr = e.dataTransfer.getData("text/plain");
-    const piece = parseInt(pieceStr, 10);
-    if (piece && !placedPieces[index]) {
+    const pieceId = parseInt(pieceStr, 10);
+    // Busca en unlockedPieces el objeto completo con ese id
+    const pieceObj = unlockedPieces.find((p) => p.id === pieceId);
+    if (pieceObj && !placedPieces[index]) {
       const newBoard = [...placedPieces];
-      newBoard[index] = piece;
+      newBoard[index] = pieceObj; // Guarda el objeto completo
       setPlacedPieces(newBoard);
-      setUnlockedPieces((prev) => prev.filter((p) => p !== piece));
+      setUnlockedPieces((prev) => prev.filter((p) => p.id !== pieceId));
       setMoves((prev) => prev + 1);
       checkCompletion(newBoard);
     }
   };
+  
 
   const handleRemovePiece = (index) => {
     const pieza = placedPieces[index];
@@ -132,26 +137,25 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
       {/* Inventario de piezas desbloqueadas */}
       <div className="puzzle-inventory">
         <h3 className="inventory-title">
-          <Package className="inventory-icon" /> Piezas Disponibles (
-          {unlockedPieces.length})
+          Piezas Disponibles ({unlockedPieces.length})
         </h3>
         <div className="inventory-pieces">
-          {unlockedPieces.map((piece) => (
-            <div
-              key={piece}
-              className="inventory-piece"
-              draggable
-              onDragStart={(e) => handleDragStartFromInventory(e, piece)}
-            >
+          {unlockedPieces.map((pieceObj) => (
+                <div
+                key={pieceObj.id}
+                className="inventory-piece"
+                draggable
+                onDragStart={(e) => handleDragStartFromInventory(e, pieceObj)}
+              >
               <PuzzlePiece
-                id={piece}
-                value={piece}
-                image={null}
+                id={pieceObj.id}
+                value={pieceObj.id}
+                image={catImage} // Se pasa la imagen base del gato
                 isCorrect={true}
-                currentPosition={1}
-                correctPosition={piece}
+                currentPosition={1}       // O el valor que corresponda para el inventario
+                correctPosition={pieceObj.id} // Suponiendo que la posición correcta es el id
                 draggable={true}
-                inventory={true} // Indicamos que se usa en inventario
+                inventory={true} // Indica que esta pieza se muestra en el inventario
               />
             </div>
           ))}
@@ -197,36 +201,39 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
 
       {/* Tablero de puzzle (3x3) */}
       <div className="puzzle-board">
-        {placedPieces.map((piece, index) => (
-          <div
-            key={index}
-            className={`puzzle-cell ${piece ? "filled" : "empty"}`}
-            onDragOver={handleCellDragOver}
-            onDrop={(e) => handleCellDrop(e, index)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              handleRemovePiece(index);
-            }}
-          >
-            {piece && (
-              <PuzzlePiece
-                id={piece}
-                value={piece}
-                isCorrect={piece === index + 1}
-                draggable={true}
-                onDragStart={(e) => handleDragStartFromCell(e, index)}
-                currentPosition={index + 1}
-                correctPosition={piece}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+  {placedPieces.map((piece, index) => (
+    <div
+      key={index}
+      className={`puzzle-cell ${piece ? "filled" : "empty"}`}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => handleCellDrop(e, index)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        handleRemovePiece(index);
+      }}
+    >
+      {piece && (
+        <PuzzlePiece
+          id={piece.id}
+          value={piece.id}
+          image={catImage}  // Se pasa la imagen base para recortar
+          isCorrect={piece.id === index + 1}
+          draggable={true}
+          onDragStart={(e) => handleDragStartFromCell(e, index)}
+          currentPosition={index + 1}
+          correctPosition={piece.id} // O la posición correcta que corresponda
+        />
+      )}
+    </div>
+  ))}
+</div>
+
 
       {/* Mensaje de finalización */}
       {isComplete && (
         <div className="completion-message">
           ¡Puzzle completado! 🎉
+          <img src={catImage} alt="Imagen completa" />
           <div className="completion-stats">
             <span>Tiempo: {formatTime(currentTime)}</span>
             <span>Movimientos: {moves}</span>
