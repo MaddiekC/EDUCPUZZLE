@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Fondo principal: degradado oscuro con matices azules */
+body {
+  background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* Contenedor principal del menú con efecto glassmorphism */
+.menu-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 40px;
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7);
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Título con tipografía futurista y sutil sombra */
+.menu-container h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: #a2d5f2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* Estilos generales para los botones (se aplican además de los de MUI) */
+.menu-container button {
+  margin: 10px;
+  padding: 12px 30px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Efecto hover para los botones */
+.menu-container button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Opciones de multijugador con contenedor vidrioso */
+.multiplayer-options {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* Título de las opciones */
+.multiplayer-options h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+  color: #80d0f7;
+}
+
+/* Estilo para el input del ID de partida */
+.input-game-id {
+  width: 80%;
+  padding: 12px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  text-align: center;
+  transition: background 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.input-game-id:focus {
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+}
+
+/* Animación de entrada para el contenedor */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Adaptación para dispositivos móviles */
+@media (max-width: 600px) {
+  .menu-container {
+    padding: 30px;
+  }
+
+  .menu-container h1 {
+    font-size: 2rem;
+  }
+
+  .multiplayer-options h2 {
+    font-size: 1.5rem;
+  }
+}

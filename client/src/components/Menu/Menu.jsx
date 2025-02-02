@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import "./Lobby.css";
+import "./Menu.css";
 
 const theme = createTheme({
     palette: {
@@ -15,14 +15,14 @@ const theme = createTheme({
     },
 });
 
-const Lobby = () => {
+const Menu = () => {
     const navigate = useNavigate();
     const [showMultiplayerOptions, setShowMultiplayerOptions] = useState(false);
     const [gameId, setGameId] = useState("");
 
     return (
         <ThemeProvider theme={theme}>
-            <div className="lobby-container">
+            <div className="menu-container">
                 <h1>Selecciona un modo de juego</h1>
 
                 {/* Botón para jugar solo */}
@@ -45,7 +45,7 @@ const Lobby = () => {
                         <h2>Opciones de Multijugador</h2>
 
                         {/* Botón para crear partida */}
-                        <Button variant="contained" color="primary" onClick={() => navigate("/BoardMultiPL")}>
+                        <Button variant="contained" color="primary" onClick={() => navigate("/BoardCell")}>
                             Crear Partida
                         </Button>
 
@@ -73,4 +73,4 @@ const Lobby = () => {
     );
 };
 
-export default Lobby;
+export default Menu;
