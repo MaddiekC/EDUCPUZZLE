@@ -7,9 +7,9 @@ import authRoutes from './api/auth.js';
 const router = express.Router();
 
 // No agregues /api aquí, solo en src/index.js cuando lo uses como middleware
-router.use('/game', gameRoutes);  // Esto será /game
-router.use('/player', playerRoutes);  // Será /player
-router.use('/auth', authRoutes);  // Será /auth
+router.use('/game', gameRoutes);  // Esto será /api/game
+router.use('/player', playerRoutes);  // Esto será /api/player
+router.use('/auth', authRoutes);  // Esto será /api/auth
 
 router.get('/', (req, res) => {
   res.status(200).json({

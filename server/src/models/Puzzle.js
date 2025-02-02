@@ -1,3 +1,4 @@
+// server/src/models/Puzzle.js
 import mongoose from 'mongoose';
 
 const PuzzlePieceSchema = new mongoose.Schema({
@@ -18,7 +19,7 @@ const PuzzleSchema = new mongoose.Schema({
   pieces: { type: [PuzzlePieceSchema], required: true },
 });
 
-// Métodos para el modelo de Puzzle
+// Métodos para el Puzzle
 PuzzleSchema.methods.getState = function () {
   return {
     id: this.id,

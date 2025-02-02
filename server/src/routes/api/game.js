@@ -1,79 +1,13 @@
 // server/src/routes/api/game.js
 import express from "express";
-import gameController from "../../controllers/gameController.js";
-import Player from "../../models/Player.js";
-
+import GameController from "../../controllers/gameController.js";
 const router = express.Router();
 
-/**
- * @swagger
- * /game/players:
- *   get:
- *     summary: Obtiene todos los jugadores.
- *     tags: [Game]
- *     responses:
- *       200:
- *         description: Lista de jugadores.
- *       500:
- *         description: Error en el servidor.
- */
-router.get("/players", async (req, res) => {
-  try {
-    const players = await Player.find();
-    res.status(200).json(players);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching players", error: error.message });
-  }
-});
-
-/**
- * @swagger
- * /game/initialize:
- *   post:
- *     summary: Inicializa un nuevo juego.
- *     tags: [Game]
- *     responses:
- *       200:
- *         description: Juego inicializado exitosamente.
- */
-router.post("/initialize", gameController.initializeGame);
-
-/**
- * @swagger
- * /game/join:
- *   post:
- *     summary: Un jugador se une a un juego.
- *     tags: [Game]
- *     responses:
- *       200:
- *         description: Jugador añadido al juego.
- */
-router.post("/join", gameController.joinGame);
-
-/**
- * @swagger
- * /game/action:
- *   post:
- *     summary: Maneja una acción de un jugador.
- *     tags: [Game]
- *     responses:
- *       200:
- *         description: Acción procesada exitosamente.
- */
-router.post("/action", gameController.handlePlayerAction);
-
-/**
- * @swagger
- * /game/end:
- *   post:
- *     summary: Finaliza un juego.
- *     tags: [Game]
- *     responses:
- *       200:
- *         description: Juego finalizado exitosamente.
- */
-router.post("/end", gameController.endGame);
+// Definir las rutas usando el controlador importado
+router.get("/:gameId/players", (req, res) => GameController.getPlayers(req, res));
+router.post("/initialize", (req, res) => GameController.initializeGame(req, res));
+router.post("/join", (req, res) => GameController.joinGame(req, res));
+router.post("/action", (req, res) => GameController.handlePlayerAction(req, res));
+router.post("/end", (req, res) => GameController.endGame(req, res));
 
 export default router;

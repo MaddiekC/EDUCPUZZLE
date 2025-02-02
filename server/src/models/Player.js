@@ -1,47 +1,38 @@
-import mongoose from 'mongoose'; // Usamos import en lugar de require
+// server/src/models/Player.js
+import mongoose from 'mongoose';
 
-const PlayerSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    trim: true,
-    unique: true,
+const playerSchema = new mongoose.Schema(
+  {
+    username: { 
+      type: String, 
+      required: [true, "El campo 'username' es obligatorio"], 
+      trim: true 
+    },
+    score: { 
+      type: Number, 
+      default: 0 
+    },
+    // Puedes agregar otros campos según tus necesidades, por ejemplo:
+    // avatar: { type: String }
   },
-  score: {
-    type: Number,
-    default: 0,
-  },
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
-  progress: {
-    type: Object, // Puede ser un esquema más detallado dependiendo de los requisitos de progreso.
-    default: {},
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
-// Métodos personalizados
-PlayerSchema.methods.updateScore = function (points) {
+/**
+ * Método para actualizar el puntaje del jugador.
+ * Suma la cantidad de puntos indicada y guarda los cambios en la BD.
+ * @param {number} points - Cantidad de puntos a sumar.
+ * @returns {Promise<Player>} - El jugador actualizado.
+ */
+playerSchema.methods.updateScore = async function (points) {
+  if (typeof points !== 'number') {
+    throw new Error('El valor de points debe ser un número');
+  }
   this.score += points;
-  return this.save();
+  await this.save();
+  return this;
 };
 
-PlayerSchema.methods.setActive = function (status) {
-  this.isActive = status;
-  return this.save();
-};
+const Player = mongoose.model('Player', playerSchema);
 
-PlayerSchema.methods.getProgress = function () {
-  return this.progress;
-};
-
-// Crear el modelo
-const Player = mongoose.model('Player', PlayerSchema);
-
-// Usamos export default para exportar el modelo en ESM
 export default Player;

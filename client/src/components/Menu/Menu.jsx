@@ -1,4 +1,5 @@
 /* global localStorage */
+//client\src\components\Menu\Menu.jsx
 import React, { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -22,8 +23,8 @@ const Menu = () => {
   const [gameIdInput, setGameIdInput] = useState("");
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
-  const [players, setPlayers] = useState([]);  // Estado para la lista de jugadores
-  const [showPlayers, setShowPlayers] = useState(false);  // Estado para mostrar la lista de jugadores
+  const [players, setPlayers] = useState([]); // Estado para la lista de jugadores
+  const [showPlayers, setShowPlayers] = useState(false); // Estado para mostrar la lista de jugadores
 
   const username = localStorage.getItem("username") || "Jugador";
   const token = localStorage.getItem("accessToken");
@@ -37,16 +38,16 @@ const Menu = () => {
       const gameId = generateGameId();
       const playerId = localStorage.getItem("userId");
       const difficulty = "easy";
-  
+
       console.log("Intentando crear partida con datos:", {
         gameId,
         playerId,
         username,
-        difficulty
+        difficulty,
       });
-  
+
       const response = await axios.post(
-        "/game/initialize",  // Añadido el prefijo /api
+        "/game/initialize", // Añadido el prefijo /api
         { gameId, playerId, username, difficulty },
         {
           headers: {
@@ -55,9 +56,9 @@ const Menu = () => {
           },
         }
       );
-  
+
       console.log("Respuesta del servidor:", response.data);
-      
+
       if (response.data.gameState) {
         console.log("Estado del juego:", response.data.gameState);
         navigate(`/lobby/${gameId}`);
@@ -79,7 +80,7 @@ const Menu = () => {
 
   const handleGameIdInput = (e) => {
     const value = e.target.value;
-    if (value && !value.startsWith('game-')) {
+    if (value && !value.startsWith("game-")) {
       setGameIdInput(`game-${value}`);
     } else {
       setGameIdInput(value);
@@ -89,7 +90,9 @@ const Menu = () => {
   const handleUnirseAPartida = async () => {
     try {
       if (!validateGameId(gameIdInput)) {
-        throw new Error("ID de partida inválido. Debe tener el formato 'game-número'");
+        throw new Error(
+          "ID de partida inválido. Debe tener el formato 'game-número'"
+        );
       }
 
       const playerId = localStorage.getItem("userId");
@@ -109,7 +112,10 @@ const Menu = () => {
       navigate(`/lobby/${gameIdInput}`);
     } catch (error) {
       console.error("Error completo:", error);
-      let errorMessage = error.response?.data?.message || error.message || "Error al unirse a la partida";
+      let errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Error al unirse a la partida";
       if (error.response?.status === 404) {
         errorMessage = "La partida no existe";
       }
@@ -119,19 +125,22 @@ const Menu = () => {
   };
 
   // Función para obtener la lista de jugadores
+  // Supongamos que tienes el gameId en una variable 'gameId'
   const fetchPlayers = async () => {
     try {
-      const response = await axios.get("/game/players", {
+      const response = await axios.get(`/game/${gameIdInput}/players`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      setPlayers(response.data);
+      // Se asume que la respuesta contiene { players: [...] }
+      setPlayers(response.data.players);
     } catch (err) {
       setError("Error al obtener jugadores");
       setShowError(true);
     }
   };
+  
 
   return (
     <ThemeProvider theme={theme}>
@@ -191,7 +200,7 @@ const Menu = () => {
               color="secondary"
               onClick={() => {
                 setShowPlayers(!showPlayers);
-                if (!showPlayers) fetchPlayers();  // Llamar a la API solo si se va a mostrar la lista
+                if (!showPlayers) fetchPlayers(); // Llamar a la API solo si se va a mostrar la lista
               }}
             >
               Ver Jugadores
@@ -203,7 +212,9 @@ const Menu = () => {
                 <h3>Jugadores Activos</h3>
                 <ul>
                   {players.map((player) => (
-                    <li key={player._id}>{player.username} - Score: {player.score}</li>
+                    <li key={player._id}>
+                      {player.username} - Score: {player.score}
+                    </li>
                   ))}
                 </ul>
               </div>

@@ -1,71 +1,115 @@
+// server/src/services/socketService.js
 import { Server } from 'socket.io';
-import gameService from './gameService.js';  // Ajusta la ruta según corresponda
+import gameService from './gameService.js'; // Asegúrate de que la ruta sea la correcta
 
 class SocketService {
-  constructor(server) {
+  constructor() {
+    this.io = null; // Se inicializará con el servidor HTTP
+    this.connections = new Map(); // Almacena información de los sockets conectados
+  }
+
+  /**
+   * Inicializa el servidor de sockets con el servidor HTTP.
+   * @param {http.Server} server 
+   */
+  initialize(server) {
     this.io = new Server(server, {
       cors: {
-        origin: '*', // Configura esto con la URL de tu cliente para producción
+        origin: '*', // Cambia esto en producción
         methods: ['GET', 'POST'],
       },
     });
-    this.connections = new Map(); // Almacena usuarios conectados
-  }
 
-  initialize() {
     this.io.on('connection', (socket) => {
       console.log(`New connection: ${socket.id}`);
       this.setupListeners(socket);
     });
   }
 
+  /**
+   * Configura los listeners para cada socket.
+   * Se incluyen eventos para:
+   * - joinRoom: unirse a la sala (gameId)
+   * - joinGame: para agregar al jugador al juego (además de joinRoom)
+   * - playerMove: movimientos de jugador
+   * - disconnect: para gestionar la desconexión
+   * @param {SocketIO.Socket} socket 
+   */
   setupListeners(socket) {
-    // Listener para unir a un jugador al juego
+    // Permite que el cliente se una a la sala del juego
+    socket.on('joinRoom', ({ gameId }) => {
+      socket.join(gameId);
+      console.log(`Socket ${socket.id} se unió a la sala ${gameId}`);
+
+      // Si el juego existe, enviar el estado actual al socket que se acaba de unir.
+      const game = gameService.games[gameId];
+      if (game) {
+        socket.emit('gameStateUpdated', game.getState());
+      }
+    });
+
+    // Listener para que un jugador se una a un juego vía sockets
     socket.on('joinGame', async (data) => {
       const { username, gameId } = data;
-
       try {
         const player = await gameService.addPlayerToGame(gameId, username);
-        this.connections.set(socket.id, { gameId, playerId: player.id });
+        // Guardamos la información de la conexión para luego poder desconectar
+        this.connections.set(socket.id, { gameId, playerId: player._id ? player._id.toString() : player.id });
+        // Unir el socket a la sala correspondiente (si no se ha hecho)
         socket.join(gameId);
-
-        this.io.to(gameId).emit('playerJoined', {
-          player,
-          players: gameService.getPlayersInGame(gameId),
-        });
+        // Emitir el evento de que un jugador se unió, con la lista actualizada
+        const players = await gameService.getPlayers(gameId);
+        this.io.to(gameId).emit('playerJoined', { player, players });
+        // Emitir el estado completo del juego a la sala
+        const gameState = await gameService.getGameState(gameId);
+        this.io.to(gameId).emit('gameStateUpdated', gameState);
       } catch (error) {
         socket.emit('error', { message: error.message });
       }
     });
 
-    // Listener para enviar movimientos
-    socket.on('playerMove', (data) => {
+    // Listener para movimientos de jugadores
+    socket.on('playerMove', async (data) => {
       const { gameId, move } = data;
       try {
-        const updatedGameState = gameService.processPlayerMove(gameId, move);
+        const updatedGameState = await gameService.processPlayerMove(gameId, move);
         this.io.to(gameId).emit('gameStateUpdated', updatedGameState);
       } catch (error) {
         socket.emit('error', { message: error.message });
       }
     });
 
-    // Listener para desconexión
+    // Listener para solicitar el estado actual del juego
+    socket.on('getGameState', async ({ gameId }) => {
+      const game = gameService.games[gameId];
+      if (game) {
+        socket.emit('gameStateUpdated', game.getState());
+      }
+    });
+
+    // Listener para la desconexión
     socket.on('disconnect', () => {
       const connectionInfo = this.connections.get(socket.id);
       if (connectionInfo) {
         const { gameId, playerId } = connectionInfo;
         gameService.removePlayerFromGame(gameId, playerId);
         this.io.to(gameId).emit('playerLeft', { playerId });
-
         this.connections.delete(socket.id);
         console.log(`Connection closed: ${socket.id}`);
       }
     });
   }
 
-  // Aquí está el método broadcastUpdate
+  /**
+   * Emite un evento a todos los sockets de la sala (gameId).
+   * @param {string} gameId 
+   * @param {string} event 
+   * @param {any} data 
+   */
   broadcastUpdate(gameId, event, data) {
-    this.io.to(gameId).emit(event, data);
+    if (this.io) {
+      this.io.to(gameId).emit(event, data);
+    }
   }
 }
 
