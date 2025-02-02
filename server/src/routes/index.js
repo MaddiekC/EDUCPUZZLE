@@ -1,21 +1,21 @@
+// server/src/routes/index.js
 import express from 'express';
 import gameRoutes from './api/game.js';
-import playerRoutes from './api/player.js';  // Aquí debes importar playerRoutes
+import playerRoutes from './api/player.js';
 import authRoutes from './api/auth.js';
 
 const router = express.Router();
 
-// Definir las rutas de la API
-router.use('/game', gameRoutes);   // Aquí defines las rutas de juego bajo /api/game
-router.use('/player', playerRoutes); // Aquí defines las rutas de jugadores bajo /api/player
-router.use('/auth', authRoutes);  // Aquí defines las rutas de autenticación bajo /api/auth
+// No agregues /api aquí, solo en src/index.js cuando lo uses como middleware
+router.use('/game', gameRoutes);  // Esto será /game
+router.use('/player', playerRoutes);  // Será /player
+router.use('/auth', authRoutes);  // Será /auth
 
-// Ruta principal
 router.get('/', (req, res) => {
-    res.status(200).json({
-        message: 'EDUCPUZZLE API - Server is running',
-        status: 'OK',
-    });
+  res.status(200).json({
+    message: 'EDUCPUZZLE API - Server is running',
+    status: 'OK',
+  });
 });
 
 export default router;

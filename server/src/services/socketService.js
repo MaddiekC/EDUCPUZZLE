@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import gameService from './gameService.js'
+import gameService from './gameService.js';  // Ajusta la ruta según corresponda
 
 class SocketService {
   constructor(server) {
@@ -63,9 +63,10 @@ class SocketService {
     });
   }
 
+  // Aquí está el método broadcastUpdate
   broadcastUpdate(gameId, event, data) {
     this.io.to(gameId).emit(event, data);
   }
 }
 
-export default SocketService;
+export default new SocketService();

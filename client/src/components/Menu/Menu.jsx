@@ -3,21 +3,15 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import axios from "../../api/axios"; // Asegúrate de tener configurado axios
+import { Alert, Snackbar } from "@mui/material";
+import axios from "../../api/axios";
 import "./Menu.css";
 
-// Tema de Material UI
 const theme = createTheme({
   palette: {
-    primary: {
-      main: "#1976d2",
-    },
-    secondary: {
-      main: "#dc004e",
-    },
-    success: {
-      main: "#2e7d32",
-    },
+    primary: { main: "#1976d2" },
+    secondary: { main: "#dc004e" },
+    success: { main: "#2e7d32" },
   },
 });
 
@@ -25,31 +19,32 @@ const Menu = () => {
   const navigate = useNavigate();
   const [showMultiplayerOptions, setShowMultiplayerOptions] = useState(false);
   const [gameIdInput, setGameIdInput] = useState("");
+  const [error, setError] = useState("");
+  const [showError, setShowError] = useState(false);
 
-  // Recuperar el nombre de usuario guardado en el localStorage.
-  // Si no existe, se muestra "Jugador" por defecto.
   const username = localStorage.getItem("username") || "Jugador";
 
-  // Función para generar un ID único para el juego.
   const generateGameId = () => {
     return "game-" + Date.now();
   };
 
-  // Función para manejar la creación de la partida
   const handleCrearPartida = async () => {
     try {
-      // Generamos un ID de juego, por ejemplo usando la fecha actual
       const gameId = generateGameId();
-
-      // Recuperamos el token, userId y username desde el localStorage
       const token = localStorage.getItem("accessToken");
       const playerId = localStorage.getItem("userId");
-      const difficulty = "easy"; // O permitir al usuario seleccionar la dificultad
-
-      // Llamada al endpoint de inicialización del juego
+      const difficulty = "easy";
+  
+      console.log("Intentando crear partida con datos:", {
+        gameId,
+        playerId,
+        username,
+        difficulty
+      });
+  
       const response = await axios.post(
-        "/game/initialize", // Asegúrate que esta ruta coincida con la definida en tu backend
-        JSON.stringify({ gameId, playerId, username, difficulty }),
+        "/game/initialize",  // Añadido el prefijo /api
+        { gameId, playerId, username, difficulty },
         {
           headers: {
             "Content-Type": "application/json",
@@ -57,27 +52,49 @@ const Menu = () => {
           },
         }
       );
-
-      console.log("Juego creado:", response.data);
-
-      // Redirigir al usuario al tablero del juego utilizando el gameId creado
-      navigate(`/BoardCell/${gameId}`);
+  
+      console.log("Respuesta del servidor:", response.data);
+      
+      if (response.data.gameState) {
+        console.log("Estado del juego:", response.data.gameState);
+        navigate(`/lobby/${gameId}`);
+      } else {
+        throw new Error("No se recibió el estado del juego");
+      }
     } catch (error) {
-      console.error("Error al crear partida:", error);
-      // Aquí puedes mostrar un mensaje de error al usuario si lo deseas
+      console.error("Error completo al crear partida:", error);
+      console.error("Respuesta del servidor:", error.response?.data);
+      setError(error.response?.data?.message || "Error al crear la partida");
+      setShowError(true);
     }
   };
 
-  // Función para manejar el ingreso a una partida existente
+  const validateGameId = (gameId) => {
+    const gameIdPattern = /^game-\d+$/;
+    return gameIdPattern.test(gameId);
+  };
+
+  const handleGameIdInput = (e) => {
+    const value = e.target.value;
+    if (value && !value.startsWith('game-')) {
+      setGameIdInput(`game-${value}`);
+    } else {
+      setGameIdInput(value);
+    }
+  };
+
   const handleUnirseAPartida = async () => {
     try {
+      if (!validateGameId(gameIdInput)) {
+        throw new Error("ID de partida inválido. Debe tener el formato 'game-número'");
+      }
+
       const token = localStorage.getItem("accessToken");
       const playerId = localStorage.getItem("userId");
 
-      // Llamada al endpoint para unirse a la partida (implementado en tu backend)
       const response = await axios.post(
-        "/game/join", // Asegúrate que esta ruta coincida con la definida en tu backend
-        JSON.stringify({ gameId: gameIdInput, playerId, username }),
+        "/game/join",
+        { gameId: gameIdInput, playerId, username },
         {
           headers: {
             "Content-Type": "application/json",
@@ -85,24 +102,26 @@ const Menu = () => {
           },
         }
       );
-      console.log("Unido a la partida:", response.data);
 
-      // Redirigir al usuario al tablero de la partida
-      navigate(`/BoardCell/${gameIdInput}`);
+      console.log("Unido a la partida:", response.data);
+      navigate(`/lobby/${gameIdInput}`);
     } catch (error) {
-      console.error("Error al unirse a la partida:", error);
-      // Aquí puedes mostrar un mensaje de error al usuario si lo deseas
+      console.error("Error completo:", error);
+      let errorMessage = error.response?.data?.message || error.message || "Error al unirse a la partida";
+      if (error.response?.status === 404) {
+        errorMessage = "La partida no existe";
+      }
+      setError(errorMessage);
+      setShowError(true);
     }
   };
 
   return (
     <ThemeProvider theme={theme}>
       <div className="menu-container">
-        {/* Mensaje de bienvenida mostrando el nombre del usuario */}
         <p className="welcome-message">Bienvenido, {username}!</p>
         <h1>Selecciona un modo de juego</h1>
 
-        {/* Botón para jugar solo */}
         <Button
           variant="contained"
           color="primary"
@@ -111,7 +130,6 @@ const Menu = () => {
           Solo
         </Button>
 
-        {/* Botón para multijugador */}
         <Button
           variant="contained"
           color="secondary"
@@ -120,12 +138,10 @@ const Menu = () => {
           Multijugador
         </Button>
 
-        {/* Opciones de multijugador */}
         {showMultiplayerOptions && (
           <div className="multiplayer-options">
             <h2>Opciones de Multijugador</h2>
 
-            {/* Botón para crear partida */}
             <Button
               variant="contained"
               color="primary"
@@ -134,24 +150,35 @@ const Menu = () => {
               Crear Partida
             </Button>
 
-            {/* Campo para ingresar ID de partida y botón para unirse */}
-            <input
-              type="text"
-              placeholder="O ingrese ID de partida"
-              value={gameIdInput}
-              onChange={(e) => setGameIdInput(e.target.value)}
-              className="input-game-id"
-            />
-            <Button
-              variant="contained"
-              color="success"
-              onClick={handleUnirseAPartida}
-              disabled={!gameIdInput} // Deshabilita el botón si no se ha ingresado un ID
-            >
-              Unirse a Partida
-            </Button>
+            <div className="join-game-container">
+              <input
+                type="text"
+                placeholder="Ingrese ID de partida (ejemplo: game-123456)"
+                value={gameIdInput}
+                onChange={handleGameIdInput}
+                className="input-game-id"
+              />
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleUnirseAPartida}
+                disabled={!validateGameId(gameIdInput)}
+              >
+                Unirse a Partida
+              </Button>
+            </div>
           </div>
         )}
+
+        <Snackbar
+          open={showError}
+          autoHideDuration={6000}
+          onClose={() => setShowError(false)}
+        >
+          <Alert severity="error" onClose={() => setShowError(false)}>
+            {error}
+          </Alert>
+        </Snackbar>
       </div>
     </ThemeProvider>
   );
