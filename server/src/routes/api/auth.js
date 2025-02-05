@@ -27,10 +27,10 @@ const router = express.Router();
  *             properties:
  *               username:
  *                 type: string
- *                 example: Dilan
+ *                 example: Usuario
  *               password:
  *                 type: string
- *                 example: Dilan123
+ *                 example: Usuario
  *     responses:
  *       201:
  *         description: Usuario registrado exitosamente
@@ -59,10 +59,10 @@ router.post('/register', AuthController.register);
  *             properties:
  *               username:
  *                 type: string
- *                 example: Dilan
+ *                 example: Usuario
  *               password:
  *                 type: string
- *                 example: Dilan123
+ *                 example: Hola123456@
  *     responses:
  *       200:
  *         description: Usuario autenticado exitosamente

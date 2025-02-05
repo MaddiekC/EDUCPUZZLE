@@ -1,4 +1,3 @@
-// server/src/index.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -13,11 +12,15 @@ dotenv.config();
 // Crear una instancia de Express
 const app = express();
 
-// Middleware
+// Middleware: Permitir solicitudes desde cualquier origen, incluso para solicitudes con credenciales
 app.use(cors({
-  origin: 'http://localhost:3000', // Asegúrate de que sea la URL de tu frontend
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    return callback(null, true);
+  },
   credentials: true
 }));
+
 app.use(express.json());
 
 // Conectar a la base de datos
@@ -34,7 +37,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:5000/api',
+        url: 'http://172.18.176.4:5000/api',
         description: 'Servidor local',
       },
     ],
@@ -51,7 +54,7 @@ const swaggerOptions = {
       bearerAuth: []
     }]
   },
-  apis: ['./src/routes/api/*.js'], // Apuntar a tus rutas donde estén definidos los comentarios Swagger
+  apis: ['./src/routes/api/*.js'],
 };
 
 // Generar los documentos Swagger
@@ -75,7 +78,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Iniciar el servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
-  console.log(`Documentación Swagger disponible en: http://localhost:5000/api-docs`);
+  console.log(`Documentación Swagger disponible en: http://172.18.176.4:5000/api-docs`);
 });

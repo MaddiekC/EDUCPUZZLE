@@ -27,7 +27,7 @@ axios.interceptors.request.use(
 
 // Configuración de axios con variables de entorno y timeout
 export default axios.create({
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', // El prefijo /api ya está incluido
+    baseURL: process.env.REACT_APP_API_URL || 'http://172.18.176.4:5000/api', // El prefijo /api ya está incluido
     timeout: 5000, // 5 segundos de espera
     headers: {
         'Content-Type': 'application/json',
