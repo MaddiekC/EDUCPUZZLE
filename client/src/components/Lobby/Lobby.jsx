@@ -205,6 +205,8 @@ const Lobby = ({ gameId }) => {
   const handleStartGame = () => {
     console.log("Iniciando duelo con jugadores:", players);
     // Aquí se puede emitir un evento o redirigir a la vista del juego
+
+    navigate("/boardCell/:gameId", { state: { players } });
   };
 
   /**

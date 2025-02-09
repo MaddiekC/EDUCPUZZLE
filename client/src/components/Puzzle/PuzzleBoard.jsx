@@ -97,7 +97,7 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
       checkCompletion(newBoard);
     }
   };
-  
+
 
   const handleRemovePiece = (index) => {
     const pieza = placedPieces[index];
@@ -141,12 +141,12 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
         </h3>
         <div className="inventory-pieces">
           {unlockedPieces.map((pieceObj) => (
-                <div
-                key={pieceObj.id}
-                className="inventory-piece"
-                draggable
-                onDragStart={(e) => handleDragStartFromInventory(e, pieceObj)}
-              >
+            <div
+              key={pieceObj.id}
+              className="inventory-piece"
+              draggable
+              onDragStart={(e) => handleDragStartFromInventory(e, pieceObj)}
+            >
               <PuzzlePiece
                 id={pieceObj.id}
                 value={pieceObj.id}
@@ -179,54 +179,38 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
           )}
         </div>
         <div className="puzzle-controls">
-          <button
-            className="control-button"
-            onClick={initializeBoard}
-            title="Reiniciar puzzle"
-          >
-            <Shuffle size={20} />
-          </button>
-          <button
-            className="control-button"
-            onClick={() => {
-              setPlacedPieces(Array.from({ length: 9 }, (_, i) => i + 1));
-              setIsComplete(true);
-            }}
-            title="Solución correcta"
-          >
-            <RotateCcw size={20} />
-          </button>
+        <img src={catImage} alt="Imagen completa" style={{ width: "100px", height: "auto" }} />
         </div>
       </div>
 
       {/* Tablero de puzzle (3x3) */}
       <div className="puzzle-board">
-  {placedPieces.map((piece, index) => (
-    <div
-      key={index}
-      className={`puzzle-cell ${piece ? "filled" : "empty"}`}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => handleCellDrop(e, index)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        handleRemovePiece(index);
-      }}
-    >
-      {piece && (
-        <PuzzlePiece
-          id={piece.id}
-          value={piece.id}
-          image={catImage}  // Se pasa la imagen base para recortar
-          isCorrect={piece.id === index + 1}
-          draggable={true}
-          onDragStart={(e) => handleDragStartFromCell(e, index)}
-          currentPosition={index + 1}
-          correctPosition={piece.id} // O la posición correcta que corresponda
-        />
-      )}
-    </div>
-  ))}
-</div>
+        {placedPieces.map((piece, index) => (
+          <div
+            key={index}
+            className={`puzzle-cell ${piece ? "filled" : "empty"}`}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleCellDrop(e, index)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handleRemovePiece(index);
+            }}
+          >
+            {piece && (
+              <PuzzlePiece
+                id={piece.id}
+                value={piece.id}
+                image={catImage}  // Se pasa la imagen base para recortar
+                isCorrect={piece.id === index + 1}
+                draggable={true}
+                onDragStart={(e) => handleDragStartFromCell(e, index)}
+                currentPosition={index + 1}
+                correctPosition={piece.id} // O la posición correcta que corresponda
+              />
+            )}
+          </div>
+        ))}
+      </div>
 
 
       {/* Mensaje de finalización */}

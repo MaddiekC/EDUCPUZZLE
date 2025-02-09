@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-
 import Register from './components/Register/Register';
 import Login from './components/Login/Login';
 import BoardSoloPL from './components/Board/BoardSoloPL';
-import BoardMultiPL from './components/Board/BoardMultiPL';
 import BoardCell from './components/Board/BoardCell';
 import Menu from './components/Menu/Menu';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,7 +26,6 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/menu" element={<Menu />} />
           <Route path="/boardSoloPL" element={<BoardSoloPL />} />
-          <Route path="/boardMultiPL" element={<BoardMultiPL />} />
           {/* Ruta para el BoardCell con parámetro gameId */}
           <Route path="/boardCell/:gameId" element={<BoardCell />} />
           {/* Ruta para el Lobby con parámetro gameId */}

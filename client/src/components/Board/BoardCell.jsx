@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import PuzzleBoard from "../Puzzle/PuzzleBoard";
 import { AlertCircle, CheckCircle2, Trophy } from "lucide-react";
 import "./BoardCell.css";
+import { useLocation } from 'react-router-dom';
 
 const BoardCell = () => {
   // Estados principales
@@ -13,10 +14,13 @@ const BoardCell = () => {
     right: "?",
     result: 81,
   });
-  const [players, setPlayers] = useState([
-    { id: 1, name: "Jhon", score: 0, streak: 0 },
-    { id: 2, name: "Samir", score: 0, streak: 0 },
-  ]);
+  // Extraer el estado enviado a través de la navegación
+  const location = useLocation();
+  const initialPlayers = location.state?.players || [];
+  
+  // Inicializar el estado con la lista de jugadores recibida
+  const [players, setPlayers] = useState(initialPlayers);
+  
   const [currentTurn, setCurrentTurn] = useState(0);
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [showFeedback, setShowFeedback] = useState({
@@ -185,10 +189,10 @@ const BoardCell = () => {
         <div className="players-section">
           {players.map((player, index) => (
             <div
-              key={player.id}
+              key={player.id|| index}
               className={`player-card ${currentTurn === index ? "active" : ""}`}
             >
-              <h3 className="player-name">{player.name}</h3>
+              <h3 className="player-username">{player.username}</h3>
               <span className="player-score">{player.score}</span>
               <div className="player-stats">
                 <small>Racha: {player.streak} 🔥</small>

@@ -2,7 +2,7 @@
 import { io } from 'socket.io-client';
 
 // Ajusta la URL a la de tu servidor (por ejemplo, 'http://localhost:4000')
-const socket = io('http://172.18.176.4:3000');
+const socket = io('http://192.168.100.13:3000');
 
 const socketService = {
   /**
