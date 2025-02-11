@@ -31,7 +31,7 @@ class SocketService {
    * Se incluyen eventos para:
    * - joinRoom: unirse a la sala (gameId)
    * - joinGame: para agregar al jugador al juego (además de joinRoom)
-   * - playerMove: movimientos de jugador
+   * - playerMove: movimientos de jugador (verificando que sea el turno correcto)
    * - startGame: para iniciar el juego
    * - gameCountdown: para sincronizar la cuenta regresiva
    * - getGameState: para solicitar el estado actual
@@ -39,31 +39,29 @@ class SocketService {
    * @param {SocketIO.Socket} socket
    */
   setupListeners(socket) {
-    // Permite que el cliente se una a la sala del juego
+    // 1. joinRoom: Permite que el cliente se una a la sala del juego
     socket.on("joinRoom", ({ gameId }) => {
       socket.join(gameId);
       console.log(`Socket ${socket.id} se unió a la sala ${gameId}`);
-
-      // Si el juego existe, enviar el estado actual al socket que se acaba de unir.
+      // Si el juego existe, enviamos el estado actual al socket recién unido.
       const game = gameService.games[gameId];
       if (game) {
         socket.emit("gameStateUpdated", game.getState());
       }
     });
 
-    // Listener para que un jugador se una a un juego vía sockets
+    // 2. joinGame: Agrega al jugador al juego
     socket.on("joinGame", async (data) => {
       const { username, gameId } = data;
       try {
         const player = await gameService.addPlayerToGame(gameId, username);
-        // Guardamos la información de la conexión para luego poder desconectar
+        // Guardamos la información de la conexión para desconectar luego si es necesario
         this.connections.set(socket.id, {
           gameId,
           playerId: player._id ? player._id.toString() : player.id,
         });
-        // Unir el socket a la sala correspondiente (si no se ha hecho)
         socket.join(gameId);
-        // Emitir el evento de que un jugador se unió, con la lista actualizada
+        // Emitir que un jugador se unió, con la lista actualizada
         const players = await gameService.getPlayers(gameId);
         this.io.to(gameId).emit("playerJoined", { player, players });
         // Emitir el estado completo del juego a la sala
@@ -74,18 +72,37 @@ class SocketService {
       }
     });
 
-    // Listener para movimientos de jugadores
+    // 3. playerMove: Procesa el movimiento del jugador que debe estar en su turno
     socket.on("playerMove", async (data) => {
-      const { gameId, move } = data;
+      const { gameId, playerId, selectedNumber } = data;
       try {
-        const updatedGameState = await gameService.processPlayerMove(gameId, move);
-        this.io.to(gameId).emit("gameStateUpdated", updatedGameState);
+        const game = gameService.games[gameId];
+        if (!game) {
+          return socket.emit("error", { message: "Game not found" });
+        }
+        // Convertimos el Map de jugadores a un array para determinar quién tiene el turno
+        const playersArray = Array.from(game.players.values());
+        if (playersArray.length === 0) {
+          return socket.emit("error", { message: "No players in game" });
+        }
+        const currentPlayer = playersArray[game.currentTurn];
+        if (currentPlayer.id !== playerId) {
+          return socket.emit("error", { message: "Not your turn" });
+        }
+        // Procesamos el movimiento. La función processPlayerMove debe validar la respuesta,
+        // actualizar puntajes, generar nueva ecuación, actualizar la racha, cambiar el turno, etc.
+        const updatedGameState = await gameService.processPlayerMove(gameId, {
+          playerId,
+          selectedNumber,
+        });
+        // Emitir el estado actualizado a todos en la sala usando el evento 'boardUpdate'
+        this.io.to(gameId).emit("boardUpdate", updatedGameState);
       } catch (error) {
         socket.emit("error", { message: error.message });
       }
     });
 
-    // Listener para iniciar el juego
+    // 4. startGame: Inicia el juego
     socket.on("startGame", async ({ gameId }) => {
       console.log(`startGame event received from socket ${socket.id} for gameId: ${gameId}`);
       const game = gameService.games[gameId];
@@ -107,14 +124,14 @@ class SocketService {
       }
     });
 
-    // **Nuevo Listener para sincronizar la cuenta regresiva**
+    // 5. gameCountdown: Sincroniza la cuenta regresiva entre clientes
     socket.on("gameCountdown", ({ gameId, countdown }) => {
       console.log(`gameCountdown event recibido de socket ${socket.id} para gameId: ${gameId} con countdown: ${countdown}`);
       // Reemitir el evento a todos en la sala
       this.io.to(gameId).emit("gameCountdown", { gameId, countdown });
     });
 
-    // Listener para solicitar el estado actual del juego
+    // 6. getGameState: Envía el estado actual del juego al cliente que lo solicita
     socket.on("getGameState", async ({ gameId }) => {
       const game = gameService.games[gameId];
       if (game) {
@@ -122,7 +139,7 @@ class SocketService {
       }
     });
 
-    // Listener para la desconexión
+    // 7. disconnect: Maneja la desconexión del socket y actualiza el juego
     socket.on("disconnect", () => {
       const connectionInfo = this.connections.get(socket.id);
       if (connectionInfo) {
