@@ -2,7 +2,7 @@
 // client/src/components/PuzzleBoard.jsx
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { Package, Shuffle, RotateCcw, Crown } from "lucide-react";
+import {Crown } from "lucide-react";
 import PuzzlePiece from "./PuzzlePiece";
 import "./Puzzle.css";
 import catImage from "../../assets/cat.jpg";

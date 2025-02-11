@@ -429,3 +429,25 @@
     font-size: 1.25rem;
   }
 }
+
+.popup-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ffdddd;
+  color: #d8000c;
+  padding: 10px 20px;
+  border: 1px solid #d8000c;
+  border-radius: 5px;
+  z-index: 1000;
+  font-weight: bold;
+  animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
