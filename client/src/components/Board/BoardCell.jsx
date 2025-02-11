@@ -1,39 +1,69 @@
-
 // client/src/components/BoardCell.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import PuzzleBoard from "../Puzzle/PuzzleBoard";
 import { AlertCircle, CheckCircle2, Trophy } from "lucide-react";
 import "./BoardCell.css";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 
 const BoardCell = () => {
-  // Estados principales
-  const [equation, setEquation] = useState({
-    left: 9,
-    operator: "x",
-    right: "?",
-    result: 81,
-  });
-  // Extraer el estado enviado a través de la navegación
+  //Obtiene el ID del jugador local
+  const localPlayerId = localStorage.getItem("userId");
+  console.log(localPlayerId)
+
+  //Mensaje de alerta 
+  const [popupMessage, setPopupMessage] = useState("");
+
+  // Extraer los jugadores enviados desde el Lobby
   const location = useLocation();
-  const initialPlayers = location.state?.players || [];
-  
-  // Inicializar el estado con la lista de jugadores recibida
-  const [players, setPlayers] = useState(initialPlayers);
-  
-  const [currentTurn, setCurrentTurn] = useState(0);
+  const initialPlayersFromNav = location.state?.players || [];
+
+  // Función para obtener el estado guardado en localStorage (o devolver null)
+  const getSavedState = () => {
+    const saved = localStorage.getItem("boardCellState");
+    return saved ? JSON.parse(saved) : null;
+  };
+
+  // Inicializar cada estado utilizando una función lazy que verifique localStorage
+  const [equation, setEquation] = useState(() => {
+    const savedState = getSavedState();
+    return (savedState && savedState.equation) || {
+      left: 9,
+      operator: "x",
+      right: "?",
+      result: 81,
+    };
+  });
+
+  const [players, setPlayers] = useState(() => {
+    const savedState = getSavedState();
+    return (savedState && savedState.players) || initialPlayersFromNav;
+  });
+
+  const [currentTurn, setCurrentTurn] = useState(() => {
+    const savedState = getSavedState();
+    return savedState && typeof savedState.currentTurn === "number"
+      ? savedState.currentTurn
+      : 0;
+  });
+
+  const [gameStats, setGameStats] = useState(() => {
+    const savedState = getSavedState();
+    return (
+      (savedState && savedState.gameStats) || {
+        totalMoves: 0,
+        correctAnswers: 0,
+        bestStreak: 0,
+      }
+    );
+  });
+
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [showFeedback, setShowFeedback] = useState({
     show: false,
     isCorrect: false,
   });
-  const [gameStats, setGameStats] = useState({
-    totalMoves: 0,
-    correctAnswers: 0,
-    bestStreak: 0,
-  });
 
-  // Generamos números del 1 al 9
+  // Generamos números del 1 al 9 para el tablero
   const availableNumbers = Array.from({ length: 9 }, (_, i) => ({
     value: i + 1,
     isDisabled: false,
@@ -93,6 +123,15 @@ const BoardCell = () => {
 
   // Manejo de la selección de número
   const handleNumberSelect = async (number) => {
+    // Comprobar si es el turno del jugador local
+    if (players[currentTurn].id !== localPlayerId) {
+      setPopupMessage("No es tu turno");
+      setTimeout(() => {
+        setPopupMessage("");
+      }, 5000);
+      return; // Si no es el turno del jugador local, no se ejecuta nada
+    }
+
     setSelectedNumber(number);
     const isCorrect = validateAnswer(number);
     setShowFeedback({ show: true, isCorrect });
@@ -129,11 +168,26 @@ const BoardCell = () => {
     }, 1500);
   };
 
+  // Al montar el componente, solo generamos una nueva ecuación si NO hay estado guardado
   useEffect(() => {
-    generateNewEquation();
+    const savedState = getSavedState();
+    if (!savedState) {
+      generateNewEquation();
+    }
   }, [generateNewEquation]);
 
-  // Efecto para el "hitbox magnético" usando solo el botón más cercano
+  // Guardar en localStorage cada vez que cambie el estado relevante
+  useEffect(() => {
+    const stateToSave = {
+      equation,
+      players,
+      currentTurn,
+      gameStats,
+    };
+    localStorage.setItem("boardCellState", JSON.stringify(stateToSave));
+  }, [equation, players, currentTurn, gameStats]);
+
+  // Efecto para el "hitbox magnético" (sin cambios)
   useEffect(() => {
     const grid = document.querySelector(".numbers-grid");
     if (!grid) return;
@@ -143,7 +197,6 @@ const BoardCell = () => {
     const handleMouseMove = (e) => {
       let closestButton = null;
       let minDistance = Infinity;
-      // Se calcula la distancia de cada botón al cursor
       buttons.forEach((button) => {
         const rect = button.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
@@ -156,7 +209,6 @@ const BoardCell = () => {
           closestButton = button;
         }
       });
-      // Solo se escala el botón más cercano si está dentro del umbral
       buttons.forEach((button) => {
         if (button === closestButton && minDistance < threshold) {
           const scale = 1 + 0.3 * (1 - minDistance / threshold);
@@ -184,12 +236,19 @@ const BoardCell = () => {
 
   return (
     <div className="board-wrapper">
+      {/* Popup para mostrar mensajes (se renderiza solo si popupMessage tiene valor) */}
+      {popupMessage && (
+        <div className="popup-message">
+          {popupMessage}
+        </div>
+      )}
+
       {/* Izquierda: Información del juego */}
       <div className="game-info">
         <div className="players-section">
           {players.map((player, index) => (
             <div
-              key={player.id|| index}
+              key={player.id || index}
               className={`player-card ${currentTurn === index ? "active" : ""}`}
             >
               <h3 className="player-username">{player.username}</h3>
@@ -213,9 +272,8 @@ const BoardCell = () => {
 
         {showFeedback.show && (
           <div
-            className={`feedback-message ${
-              showFeedback.isCorrect ? "correct" : "wrong"
-            }`}
+            className={`feedback-message ${showFeedback.isCorrect ? "correct" : "wrong"
+              }`}
           >
             {showFeedback.isCorrect ? (
               <CheckCircle2 className="feedback-icon" />
@@ -229,13 +287,12 @@ const BoardCell = () => {
           {availableNumbers.map(({ value, isDisabled, isSelected }) => (
             <button
               key={value}
-              className={`number-button ${isSelected ? "selected" : ""} ${
-                showFeedback.show && isSelected
-                  ? showFeedback.isCorrect
-                    ? "correct-answer"
-                    : "wrong-answer"
-                  : ""
-              }`}
+              className={`number-button ${isSelected ? "selected" : ""} ${showFeedback.show && isSelected
+                ? showFeedback.isCorrect
+                  ? "correct-answer"
+                  : "wrong-answer"
+                : ""
+                }`}
               onClick={() => handleNumberSelect(value)}
               disabled={isDisabled || showFeedback.show}
             >
