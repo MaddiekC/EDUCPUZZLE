@@ -1,35 +1,27 @@
 /* global localStorage */
 import React, { useEffect, useState, useCallback } from "react";
 import PropTypes from "prop-types";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "../../api/axios";
 import socketService from "../../services/socket/socketService";
-import "./Lobby.css"; // Se importa el CSS correspondiente
+import "./Lobby.css";
 
-/**
- * PlayerCard
- * Muestra la información del jugador con un estilo tipo "carta" para el lobby.
- */
-const PlayerCard = ({ player }) => {
-  return (
-    <div className="player-card">
-      <div className="card-background" />
-      <div className="card-content">
-        <h4 className="player-name">{player.username}</h4>
-        <p className="player-status">Listo para el duelo</p>
-      </div>
+// Componente para mostrar cada jugador en forma de carta.
+const PlayerCard = ({ player }) => (
+  <div className="player-card">
+    <div className="card-background" />
+    <div className="card-content">
+      <h4 className="player-name">{player.username}</h4>
+      <p className="player-status">Listo para el duelo</p>
     </div>
-  );
-};
+  </div>
+);
 
 PlayerCard.propTypes = {
   player: PropTypes.object.isRequired,
 };
 
-/**
- * LobbyHeader
- * Muestra el título y el ID de la partida.
- */
+// Header del Lobby (muestra título e ID de partida).
 const LobbyHeader = ({ gameId }) => (
   <div className="lobby-header">
     <h1 className="lobby-title">Sala de Duelo</h1>
@@ -43,10 +35,7 @@ LobbyHeader.propTypes = {
   gameId: PropTypes.string.isRequired,
 };
 
-/**
- * WaitingMessage
- * Muestra un mensaje de espera dependiendo de la cantidad de jugadores conectados.
- */
+// Mensaje de espera según la cantidad de jugadores conectados.
 const WaitingMessage = ({ playersCount }) => (
   <div className="waiting-message">
     {playersCount === 0 ? (
@@ -64,32 +53,26 @@ WaitingMessage.propTypes = {
   playersCount: PropTypes.number.isRequired,
 };
 
-/**
- * StartGameButton
- * Botón para iniciar el duelo. Se desactiva hasta que haya al menos 2 jugadores.
- */
-const StartGameButton = ({ onStart, disabled }) => (
+// Botón para iniciar el duelo.
+const StartGameButton = ({ onStart, disabled, gameStarting }) => (
   <button className="start-game-button" onClick={onStart} disabled={disabled}>
-    {disabled ? "Esperando más duelistas..." : "Iniciar Duelo"}
+    {gameStarting ? "Iniciando duelo..." : "Iniciar Duelo"}
   </button>
 );
 
 StartGameButton.propTypes = {
   onStart: PropTypes.func.isRequired,
   disabled: PropTypes.bool.isRequired,
+  gameStarting: PropTypes.bool,
 };
 
-/**
- * ChatBox
- * Sección de chat para el lobby (simulación, se puede ampliar para comunicación en tiempo real).
- */
+// Componente para el chat (simulación).
 const ChatBox = () => {
   const [messages, setMessages] = useState([]);
   const [inputMsg, setInputMsg] = useState("");
 
   const handleSendMessage = () => {
     if (!inputMsg.trim()) return;
-    // Se simula el envío del mensaje (en un caso real se emitiría vía socket)
     setMessages((prevMessages) => [
       ...prevMessages,
       { id: Date.now(), text: inputMsg },
@@ -132,30 +115,33 @@ const ChatBox = () => {
   );
 };
 
-/**
- * Lobby
- * Componente principal del lobby que integra las secciones: header, listado de jugadores,
- * temporizador, botón de inicio, chat y botón para salir de la sala.
- */
-const Lobby = ({ gameId }) => {
+const Lobby = () => {
   const navigate = useNavigate();
+  const { gameId } = useParams();
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [waitingTime, setWaitingTime] = useState(0);
+  const [gameStarting, setGameStarting] = useState(false);
+  const [countdown, setCountdown] = useState(null); // Estado para la cuenta regresiva
 
-  /**
-   * fetchPlayers
-   * Función que obtiene la lista de jugadores vía HTTP.
-   */
+  const isHost = localStorage.getItem("isHost") === "true";
+
   const fetchPlayers = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
       const response = await axios.get(`/game/${gameId}/players`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data && response.data.players) {
-        setPlayers(response.data.players);
+      if (response.data) {
+        // Si la API indica que el juego ya inició, activa la redirección
+        if (response.data.gameStarted) {
+          console.log("El juego ya inició según la API. Redirigiendo...");
+          setGameStarting(true);
+        }
+        if (response.data.players) {
+          setPlayers(response.data.players);
+        }
       }
     } catch (err) {
       console.error("Error al obtener jugadores:", err);
@@ -165,67 +151,127 @@ const Lobby = ({ gameId }) => {
     }
   }, [gameId]);
 
+  // Efecto para redirigir cuando el juego comienza.
   useEffect(() => {
-    // Obtener jugadores al montar el componente
+    if (gameStarting) {
+      const redirectTimeout = setTimeout(() => {
+        console.log("Ejecutando redirección a /boardCell/" + gameId);
+        navigate(`/boardCell/${gameId}`, {
+          state: { players },
+          replace: true
+        });
+      }, 1000);
+      return () => clearTimeout(redirectTimeout);
+    }
+  }, [gameStarting, gameId, navigate, players]);
+
+  // Efecto principal para la lógica del socket.
+  useEffect(() => {
+    let mounted = true;
+
+    console.log(`Unido a la sala con gameId: ${gameId}`);
+    socketService.emit("joinRoom", { gameId });
+
     fetchPlayers();
 
-    // Suscribirse a las actualizaciones del juego vía socket
-    const unsubscribe = socketService.subscribeToGameUpdates(
-      gameId,
-      (gameState) => {
-        console.log("Recibido gameStateUpdated:", gameState);
-        if (gameState && Array.isArray(gameState.players)) {
-          setPlayers(gameState.players);
-        }
-      },
-      (err) => {
-        console.error("Error en la suscripción al socket:", err);
-        setError("Error al actualizar el estado del juego");
+    const handleGameUpdate = (gameState) => {
+      if (!mounted) return;
+      console.log("Estado del juego actualizado:", gameState);
+      if (gameState && Array.isArray(gameState.players)) {
+        setPlayers(gameState.players);
       }
-    );
+    };
 
-    // Emitir solicitud de estado vía socket
+    const handleGameStarted = (data) => {
+      if (!mounted) return;
+      console.log("Evento gameStarted recibido:", data);
+      if (data.gameId === gameId) {
+        console.log("Iniciando proceso de redirección...");
+        setGameStarting(true);
+      }
+    };
+
+    socketService.on(`gameState:${gameId}`, handleGameUpdate);
+    socketService.on("gameStarted", handleGameStarted);
+
     socketService.emit("getGameState", { gameId });
 
-    // Temporizador para mostrar el tiempo de espera en el lobby
     const timer = setInterval(() => {
-      setWaitingTime((prevTime) => prevTime + 1);
+      if (mounted) {
+        setWaitingTime((prev) => prev + 1);
+      }
     }, 1000);
 
+    const pollInterval = setInterval(() => {
+      if (mounted) {
+        fetchPlayers();
+      }
+    }, 5000);
+
     return () => {
-      unsubscribe();
+      mounted = false;
       clearInterval(timer);
+      clearInterval(pollInterval);
+      socketService.off(`gameState:${gameId}`, handleGameUpdate);
+      socketService.off("gameStarted", handleGameStarted);
+      socketService.emit("leaveLobby", { gameId });
     };
   }, [gameId, fetchPlayers]);
 
-  /**
-   * handleStartGame
-   * Lógica para iniciar el juego. Se activa solo si hay al menos dos jugadores.
-   */
-  const handleStartGame = () => {
-    console.log("Iniciando duelo con jugadores:", players);
-    // Aquí se puede emitir un evento o redirigir a la vista del juego
+  // Todos los clientes escuchan el evento "gameCountdown" para actualizar la cuenta regresiva.
+  useEffect(() => {
+    const handleGameCountdown = (data) => {
+      if (data.gameId === gameId) {
+        setCountdown(data.countdown);
+      }
+    };
 
-    navigate("/boardCell/:gameId", { state: { players } });
+    socketService.on("gameCountdown", handleGameCountdown);
+
+    return () => {
+      socketService.off("gameCountdown", handleGameCountdown);
+    };
+  }, [gameId]);
+
+  // Función que, desde el host, inicia la cuenta regresiva y emite cada segundo el valor actualizado.
+  const startCountdown = () => {
+    let counter = 5;
+    setCountdown(counter);
+    // Emite inmediatamente el valor inicial.
+    socketService.emit("gameCountdown", { gameId, countdown: counter });
+    const countdownInterval = setInterval(() => {
+      counter--;
+      socketService.emit("gameCountdown", { gameId, countdown: counter });
+      if (counter <= 0) {
+        clearInterval(countdownInterval);
+        setGameStarting(true);
+        // El host emite el evento para iniciar el juego.
+        socketService.emit("startGame", { gameId, players });
+      }
+    }, 1000);
   };
 
-  /**
-   * handleLeaveLobby
-   * Lógica para salir de la sala. Puede incluir la emisión de un evento vía socket
-   * y la redirección al menú principal.
-   */
+  // Función que se ejecuta al presionar "Iniciar Duelo" (solo para el host).
+  const handleStartGame = () => {
+    if (players.length < 2) return;
+    console.log("El host inicia la cuenta regresiva para el duelo...");
+    startCountdown();
+  };
+
   const handleLeaveLobby = () => {
-    // Por ejemplo, emitir un evento para notificar que el jugador abandona la sala
     socketService.emit("leaveLobby", { gameId });
-    // Redirigir al menú o página principal
-    navigate("/menu");
+    navigate("/menu", { replace: true });
   };
 
   return (
     <div className="lobby-container">
       <LobbyHeader gameId={gameId} />
       <div className="top-controls">
-        <button className="leave-lobby-button" onClick={handleLeaveLobby}>
+        <button 
+          className="leave-lobby-button" 
+          onClick={handleLeaveLobby}
+          disabled={gameStarting}
+        >
           Salir de la Sala
         </button>
       </div>
@@ -248,20 +294,41 @@ const Lobby = ({ gameId }) => {
         )}
       </div>
       <div className="controls-section">
-        <StartGameButton
-          onStart={handleStartGame}
-          disabled={players.length < 2}
-        />
+        {isHost ? (
+          <>
+            {players.length < 2 ? (
+              <p className="lobby-status">
+                Partida creada, esperando que jugadores se conecten...
+              </p>
+            ) : (
+              countdown !== null ? (
+                <p className="lobby-countdown">
+                  El duelo inicia en: {countdown} segundo{countdown !== 1 ? "s" : ""}
+                </p>
+              ) : (
+                <StartGameButton
+                  onStart={handleStartGame}
+                  disabled={players.length < 2 || countdown !== null}
+                  gameStarting={gameStarting}
+                />
+              )
+            )}
+          </>
+        ) : (
+          <p className="lobby-status">
+            {countdown !== null
+              ? `El duelo inicia en: ${countdown} segundo${countdown !== 1 ? "s" : ""}`
+              : gameStarting
+              ? "Iniciando duelo..."
+              : "Espera a que el host inicie la partida..."}
+          </p>
+        )}
       </div>
       <div className="chat-section">
         <ChatBox />
       </div>
     </div>
   );
-};
-
-Lobby.propTypes = {
-  gameId: PropTypes.string.isRequired,
 };
 
 export default Lobby;

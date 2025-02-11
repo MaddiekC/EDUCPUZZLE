@@ -1,7 +1,6 @@
 /* global localStorage */
-//client\src\components\Menu\Menu.jsx
+// client/src/components/Menu/Menu.jsx
 import React, { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Button from "@mui/material/Button";
@@ -19,12 +18,13 @@ const theme = createTheme({
 
 const Menu = () => {
   const navigate = useNavigate();
-  const [showMultiplayerOptions, setShowMultiplayerOptions] = useState(false);
+  // Se muestran las opciones de multijugador por defecto.
+  const [showMultiplayerOptions, setShowMultiplayerOptions] = useState(true);
   const [gameIdInput, setGameIdInput] = useState("");
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
-  const [players, setPlayers] = useState([]); // Estado para la lista de jugadores
-  const [showPlayers, setShowPlayers] = useState(false); // Estado para mostrar la lista de jugadores
+  const [players, setPlayers] = useState([]); // Lista de jugadores (opcional para "Ver Jugadores")
+  const [showPlayers, setShowPlayers] = useState(false);
 
   const username = localStorage.getItem("username") || "Jugador";
   const token = localStorage.getItem("accessToken");
@@ -38,16 +38,16 @@ const Menu = () => {
       const gameId = generateGameId();
       const playerId = localStorage.getItem("userId");
       const difficulty = "easy";
-
+  
       console.log("Intentando crear partida con datos:", {
         gameId,
         playerId,
         username,
         difficulty,
       });
-
+  
       const response = await axios.post(
-        "/game/initialize", // Añadido el prefijo /api
+        "/game/initialize", // Asegúrate de que esta URL sea la correcta en tu API
         { gameId, playerId, username, difficulty },
         {
           headers: {
@@ -56,23 +56,28 @@ const Menu = () => {
           },
         }
       );
-
+  
       console.log("Respuesta del servidor:", response.data);
-
+  
       if (response.data.gameState) {
         console.log("Estado del juego:", response.data.gameState);
+        
+        // Guardar en localStorage que este usuario es el host
+        localStorage.setItem("isHost", "true");
+  
+        // Redirige al lobby usando el gameId generado.
         navigate(`/lobby/${gameId}`);
       } else {
         throw new Error("No se recibió el estado del juego");
       }
     } catch (error) {
-      console.error("Error completo al crear partida:", error);
+      console.error("Error al crear partida:", error);
       console.error("Respuesta del servidor:", error.response?.data);
       setError(error.response?.data?.message || "Error al crear la partida");
       setShowError(true);
     }
   };
-
+  
   const validateGameId = (gameId) => {
     const gameIdPattern = /^game-\d+$/;
     return gameIdPattern.test(gameId);
@@ -111,7 +116,7 @@ const Menu = () => {
       console.log("Unido a la partida:", response.data);
       navigate(`/lobby/${gameIdInput}`);
     } catch (error) {
-      console.error("Error completo:", error);
+      console.error("Error al unirse a la partida:", error);
       let errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -124,8 +129,7 @@ const Menu = () => {
     }
   };
 
-  // Función para obtener la lista de jugadores
-  // Supongamos que tienes el gameId en una variable 'gameId'
+  // Función para obtener la lista de jugadores (opcional)
   const fetchPlayers = async () => {
     try {
       const response = await axios.get(`/game/${gameIdInput}/players`, {
@@ -133,14 +137,12 @@ const Menu = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      // Se asume que la respuesta contiene { players: [...] }
       setPlayers(response.data.players);
     } catch (err) {
       setError("Error al obtener jugadores");
       setShowError(true);
     }
   };
-  
 
   return (
     <ThemeProvider theme={theme}>
@@ -194,19 +196,18 @@ const Menu = () => {
               </Button>
             </div>
 
-            {/* Botón para cargar jugadores */}
+            {/* Botón para cargar jugadores (opcional) */}
             <Button
               variant="contained"
               color="secondary"
               onClick={() => {
                 setShowPlayers(!showPlayers);
-                if (!showPlayers) fetchPlayers(); // Llamar a la API solo si se va a mostrar la lista
+                if (!showPlayers) fetchPlayers();
               }}
             >
               Ver Jugadores
             </Button>
 
-            {/* Mostrar jugadores */}
             {showPlayers && (
               <div>
                 <h3>Jugadores Activos</h3>
