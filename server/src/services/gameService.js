@@ -1,188 +1,145 @@
-// server/src/services/gameService.js
-import Game from '../models/Game.js';
-import Player from '../models/Player.js';
-import Puzzle from '../models/Puzzle.js';
-import socketService from './socketService.js';
+// server/src/services/socketService.js
+import { Server } from "socket.io";
+import gameService from "./gameService.js"; // Asegúrate de que la ruta sea la correcta
 
-class GameService {
+class SocketService {
   constructor() {
-    // Almacenamos los juegos en memoria (clave: gameId)
-    this.games = {}; 
+    this.io = null; // Se inicializará con el servidor HTTP
+    this.connections = new Map(); // Almacena información de los sockets conectados
   }
 
   /**
-   * Crea un nuevo juego.
-   * @param {string} gameId - Identificador único para el juego.
-   * @param {string} difficulty - Dificultad del juego.
-   * @returns {Game} El juego recién creado.
+   * Inicializa el servidor de sockets con el servidor HTTP.
+   * @param {http.Server} server
    */
-  async createGame(gameId, difficulty) {
-    if (!gameId || gameId.trim() === '') {
-      throw new Error("El campo 'gameId' es obligatorio");
-    }
-    if (this.games[gameId]) {
-      throw new Error("El juego ya existe");
-    }
+  initialize(server) {
+    this.io = new Server(server, {
+      cors: {
+        origin: "*", // Cambia esto en producción
+        methods: ["GET", "POST"],
+      },
+    });
 
-    // Creamos una nueva instancia de Game (no es un modelo de Mongoose)
-    const game = new Game(gameId);
-    // Inicializamos el juego (esto crea y baraja el Puzzle)
-    game.initialize(difficulty);
-
-    // Guardamos el juego en memoria
-    this.games[gameId] = game;
-
-    return game;
+    this.io.on("connection", (socket) => {
+      console.log(`New connection: ${socket.id}`);
+      this.setupListeners(socket);
+    });
   }
 
   /**
-   * Agrega un jugador al juego.
-   * Se crea el jugador en la BD (usando Mongoose) y se añade al juego en memoria.
-   * @param {string} gameId - Identificador del juego.
-   * @param {string} username - Nombre del jugador.
-   * @returns {Player} El jugador agregado.
+   * Configura los listeners para cada socket.
+   * Se incluyen eventos para:
+   * - joinRoom: unirse a la sala (gameId)
+   * - joinGame: para agregar al jugador al juego (además de joinRoom)
+   * - playerMove: movimientos de jugador
+   * - startGame: para iniciar el juego
+   * - getGameState: para solicitar el estado actual
+   * - disconnect: para gestionar la desconexión
+   * @param {SocketIO.Socket} socket
    */
-  async addPlayerToGame(gameId, username) {
-    if (!username || username.trim() === '') {
-      throw new Error("El campo 'username' es obligatorio");
-    }
-    
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
+  setupListeners(socket) {
+    // Permite que el cliente se una a la sala del juego
+    socket.on("joinRoom", ({ gameId }) => {
+      socket.join(gameId);
+      console.log(`Socket ${socket.id} se unió a la sala ${gameId}`);
 
-    // Creamos una nueva instancia de Player (modelo de Mongoose)
-    const player = new Player({ username });
-    await player.save();
-
-    // Se añade al juego (el método joinGame se encarga de evitar duplicados)
-    game.joinGame(player);
-
-    // Emitir actualización vía sockets: se envía el estado completo del juego
-    socketService.broadcastUpdate(gameId, "gameStateUpdated", game.getState());
-
-    return player;
-  }
-
-  /**
-   * Remueve a un jugador del juego.
-   * @param {string} gameId - Identificador del juego.
-   * @param {string} playerId - Identificador del jugador.
-   */
-  async removePlayerFromGame(gameId, playerId) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
-
-    game.leaveGame(playerId);
-
-    socketService.broadcastUpdate(gameId, "playerLeft", { playerId });
-  }
-
-  /**
-   * Inicia el juego: por ejemplo, asigna un puzzle.
-   * @param {string} gameId - Identificador del juego.
-   * @returns {Game} El juego actualizado.
-   */
-  async startGame(gameId) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
-
-    // Seleccionamos un puzzle de la base de datos (ejemplo: el primero que encuentre)
-    const puzzle = await Puzzle.findOne();
-    if (!puzzle) {
-      throw new Error("Puzzle no encontrado");
-    }
-
-    game.currentPuzzle = puzzle;
-    game.gameState.status = "active";
-
-    socketService.broadcastUpdate(gameId, "gameStarted", game.getState());
-
-    return game;
-  }
-
-  /**
-   * Valida la solución enviada por un jugador.
-   * Si es correcta, actualiza el puntaje del jugador.
-   * @param {string} gameId - Identificador del juego.
-   * @param {string} playerId - Identificador del jugador.
-   * @param {any} solution - Solución enviada.
-   * @returns {boolean} Indica si la solución es válida.
-   */
-  async validateSolution(gameId, playerId, solution) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
-
-    const puzzle = game.currentPuzzle;
-    if (!puzzle) {
-      throw new Error("Puzzle no encontrado");
-    }
-
-    const isValid = puzzle.validateSolution(solution);
-    if (isValid) {
-      const player = game.players.get(playerId);
-      if (!player) {
-        throw new Error("Jugador no encontrado en el juego");
+      // Si el juego existe, enviar el estado actual al socket que se acaba de unir.
+      const game = gameService.games[gameId];
+      if (game) {
+        socket.emit("gameStateUpdated", game.getState());
       }
-      await player.updateScore(10);
-      socketService.broadcastUpdate(gameId, "solutionValid", player);
-    } else {
-      socketService.broadcastUpdate(gameId, "solutionInvalid", { playerId });
-    }
+    });
 
-    return isValid;
+    // Listener para que un jugador se una a un juego vía sockets
+    socket.on("joinGame", async (data) => {
+      const { username, gameId } = data;
+      try {
+        const player = await gameService.addPlayerToGame(gameId, username);
+        // Guardamos la información de la conexión para luego poder desconectar
+        this.connections.set(socket.id, {
+          gameId,
+          playerId: player._id ? player._id.toString() : player.id,
+        });
+        // Unir el socket a la sala correspondiente (si no se ha hecho)
+        socket.join(gameId);
+        // Emitir el evento de que un jugador se unió, con la lista actualizada
+        const players = await gameService.getPlayers(gameId);
+        this.io.to(gameId).emit("playerJoined", { player, players });
+        // Emitir el estado completo del juego a la sala
+        const gameState = await gameService.getGameState(gameId);
+        this.io.to(gameId).emit("gameStateUpdated", gameState);
+      } catch (error) {
+        socket.emit("error", { message: error.message });
+      }
+    });
+
+    // Listener para movimientos de jugadores
+    socket.on("playerMove", async (data) => {
+      const { gameId, move } = data;
+      try {
+        const updatedGameState = await gameService.processPlayerMove(gameId, move);
+        this.io.to(gameId).emit("gameStateUpdated", updatedGameState);
+      } catch (error) {
+        socket.emit("error", { message: error.message });
+      }
+    });
+
+    // Listener para iniciar el juego (único listener, sin duplicados)
+    socket.on("startGame", async ({ gameId }) => {
+      console.log(`startGame event received from socket ${socket.id} for gameId: ${gameId}`);
+      const game = gameService.games[gameId];
+      if (game) {
+        // Opcional: marcar el juego como iniciado (si existe ese método)
+        if (typeof game.startGame === "function") {
+          game.startGame();
+          console.log(`Juego ${gameId} marcado como iniciado.`);
+        }
+        game.updateGameState();
+        console.log(`Emitiendo evento gameStarted a todos en la sala ${gameId}`);
+        // Emitir el evento 'gameStarted' con los datos necesarios
+        this.io.to(gameId).emit("gameStarted", {
+          gameId,
+          players: Array.from(game.players.values()),
+        });
+        console.log(`Evento gameStarted emitido correctamente para gameId: ${gameId}`);
+      } else {
+        console.error(`Game with id ${gameId} not found`);
+        socket.emit("error", { message: "Game not found" });
+      }
+    });
+
+    // Listener para solicitar el estado actual del juego
+    socket.on("getGameState", async ({ gameId }) => {
+      const game = gameService.games[gameId];
+      if (game) {
+        socket.emit("gameStateUpdated", game.getState());
+      }
+    });
+
+    // Listener para la desconexión
+    socket.on("disconnect", () => {
+      const connectionInfo = this.connections.get(socket.id);
+      if (connectionInfo) {
+        const { gameId, playerId } = connectionInfo;
+        gameService.removePlayerFromGame(gameId, playerId);
+        this.io.to(gameId).emit("playerLeft", { playerId });
+        this.connections.delete(socket.id);
+        console.log(`Connection closed: ${socket.id}`);
+      }
+    });
   }
 
   /**
-   * Actualiza el estado del juego.
-   * @param {string} gameId - Identificador del juego.
-   * @param {object} newState - El nuevo estado del juego.
-   * @returns {Game} El juego actualizado.
+   * Emite un evento a todos los sockets de la sala (gameId).
+   * @param {string} gameId
+   * @param {string} event
+   * @param {any} data
    */
-  async updateGameState(gameId, newState) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
+  broadcastUpdate(gameId, event, data) {
+    if (this.io) {
+      this.io.to(gameId).emit(event, data);
     }
-
-    game.gameState = newState;
-    socketService.broadcastUpdate(gameId, "gameStateUpdated", game.getState());
-
-    return game;
-  }
-
-  /**
-   * Obtiene el estado del juego.
-   * @param {string} gameId - Identificador del juego.
-   * @returns {object} El estado del juego.
-   */
-  async getGameState(gameId) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
-    return game.getState();
-  }
-
-  /**
-   * Obtiene la lista de jugadores en el juego.
-   * @param {string} gameId - Identificador del juego.
-   * @returns {Array} Arreglo de jugadores.
-   */
-  async getPlayers(gameId) {
-    const game = this.games[gameId];
-    if (!game) {
-      throw new Error("Juego no encontrado");
-    }
-    return Array.from(game.players.values());
   }
 }
 
-export default new GameService();
+export default new SocketService();

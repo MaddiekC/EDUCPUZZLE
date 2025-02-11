@@ -1,45 +1,85 @@
 // client/src/services/socket/socketService.js
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-// Ajusta la URL a la de tu servidor (por ejemplo, 'http://localhost:4000')
-const socket = io('http://192.168.100.13:3000');
+// Ajusta la URL a la de tu servidor
+const socket = io("http://192.168.100.214:3000");
 
 const socketService = {
   /**
    * Permite suscribirse a las actualizaciones del juego.
-   * Únicamente escucha el evento "gameStateUpdated".
-   * También se encarga de unirse a la sala enviando "joinRoom".
-   * @param {string} gameId 
-   * @param {function} callback Callback que recibe el estado del juego.
-   * @returns {function} Función de limpieza para remover el listener.
+   * Se une a la sala correspondiente y escucha el evento "gameStateUpdated".
+   *
+   * @param {string} gameId - El ID de la partida.
+   * @param {function} callback - Función a ejecutar cuando se reciba un estado de juego.
+   * @param {function} [onError] - Función a ejecutar si ocurre un error.
+   * @returns {function} Función para remover el listener.
    */
   subscribeToGameUpdates: (gameId, callback, onError) => {
-    // Unirse a la sala del juego
-    socket.emit('joinRoom', { gameId });
-    // Escuchar el evento de actualización del estado del juego
+    socket.emit("joinRoom", { gameId });
     const handler = (gameState) => {
       callback(gameState);
     };
-    socket.on('gameStateUpdated', handler);
-    // Escuchar errores (si el servidor emite errores)
+    socket.on("gameStateUpdated", handler);
+
+    let errorHandler;
     if (onError) {
-      socket.on('error', onError);
+      errorHandler = onError;
+      socket.on("error", errorHandler);
     }
-    // Función de limpieza para remover el listener
+
     return () => {
-      socket.off('gameStateUpdated', handler);
+      socket.off("gameStateUpdated", handler);
+      if (errorHandler) {
+        socket.off("error", errorHandler);
+      }
     };
   },
 
   /**
    * Emite un evento con los datos proporcionados.
-   * @param {string} event 
-   * @param {any} data 
+   *
+   * @param {string} event - El nombre del evento.
+   * @param {any} data - Los datos a enviar.
    */
   emit: (event, data) => {
     socket.emit(event, data);
   },
 
+  /**
+   * Permite suscribirse a eventos personalizados.
+   *
+   * @param {string} event - El nombre del evento.
+   * @param {function} callback - Función a ejecutar cuando se reciba el evento.
+   * @returns {function} Función para remover el listener del evento.
+   */
+  subscribe: (event, callback) => {
+    socket.on(event, callback);
+    return () => {
+      socket.off(event, callback);
+    };
+  },
+
+  /**
+   * Permite suscribirse a un evento personalizado.
+   *
+   * @param {string} event - El nombre del evento.
+   * @param {function} callback - Función a ejecutar cuando se reciba el evento.
+   */
+  on: (event, callback) => {
+    socket.on(event, callback);
+  },
+
+  /**
+   * Remueve la suscripción a un evento personalizado.
+   *
+   * @param {string} event - El nombre del evento.
+   * @param {function} callback - Función que se usó para suscribirse.
+   */
+  off: (event, callback) => {
+    socket.off(event, callback);
+  },
+
+  // Se expone el objeto socket para usos avanzados.
   socket,
 };
 
