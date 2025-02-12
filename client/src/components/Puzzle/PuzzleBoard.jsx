@@ -42,20 +42,35 @@ const PuzzleBoard = ({ correctAnswersCount }) => {
   // Actualizamos unlockedPieces cuando cambian correctAnswersCount o placedPieces
   useEffect(() => {
     if (correctAnswersCount < 2) return;
+  
+    // Total de piezas desbloqueadas (en tablero + inventario) según la cantidad de respuestas correctas
     const piezasNecesarias = 1 + Math.floor((correctAnswersCount - 2) / 3);
+  
+    // Contamos cuántas piezas están colocadas en el tablero
+    const piezasColocadas = placedPieces.filter((p) => p !== null).length;
+  
+    // Calculamos cuántas piezas deberían estar disponibles (en el inventario)
+    const piezasEnInventarioDeseadas = piezasNecesarias - piezasColocadas;
+  
     setUnlockedPieces((prev) => {
-      const missing = piezasNecesarias - prev.length;
+      const piezasDisponiblesActuales = prev.length;
+      const missing = piezasEnInventarioDeseadas - piezasDisponiblesActuales;
       if (missing > 0) {
-        // Genera un array de objetos con id del 1 al 9 y descarta los ya desbloqueados
+        // Genera un array de objetos (piezas) con id del 1 al 9 y descarta las que ya están desbloqueadas o en el tablero
         const availablePieces = Array.from({ length: 9 }, (_, i) => ({ id: i + 1 }))
-          .filter((piece) => !prev.some((p) => p.id === piece.id));
+          .filter(
+            (piece) =>
+              !prev.some((p) => p.id === piece.id) &&
+              !placedPieces.some((p) => p && p.id === piece.id)
+          );
         // Mezcla el array de forma aleatoria y toma las que hacen falta
         const piezasAAgregar = availablePieces.sort(() => Math.random() - 0.5).slice(0, missing);
         return prev.concat(piezasAAgregar);
       }
       return prev;
     });
-  }, [correctAnswersCount]);
+  }, [correctAnswersCount, placedPieces]);
+  
 
   const handleDragStartFromInventory = (e, pieceObj) => {
     if (!pieceObj || pieceObj.id === undefined) {
