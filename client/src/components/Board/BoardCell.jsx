@@ -186,12 +186,13 @@ const BoardCell = () => {
     const currentPlayer = players[currentTurn];
     console.log("currentPlayer:", currentPlayer);
 
-    // Se usa _id (si existe) para comparar el turno; de lo contrario, se usa username
+    // Priorizar el campo playerId del jugador, si existe; de lo contrario, usar _id o id
     const currentPlayerId =
-      (currentPlayer._id || currentPlayer.id || currentPlayer.username)
+      (currentPlayer.playerId || currentPlayer._id || currentPlayer.id)
         ?.toString()
         .trim() || "";
-    const localId = localUsername || "";
+    // Usar el userId del localStorage para la comparación
+    const localId = localPlayerId || "";
     console.log(
       "Comparando turno: currentPlayerId:",
       currentPlayerId,
@@ -209,7 +210,7 @@ const BoardCell = () => {
     const isCorrect = validateAnswer(number);
     setShowFeedback({ show: true, isCorrect });
 
-    // Actualización de estadísticas y estado del jugador
+    // Actualización de estadísticas: total de movimientos, respuestas correctas y racha
     const newGameStats = {
       ...gameStats,
       totalMoves: gameStats.totalMoves + 1,
@@ -220,6 +221,7 @@ const BoardCell = () => {
       ),
     };
 
+    // Actualización del estado del jugador (puntuación y racha) según si respondió correctamente o no
     const updatedPlayers = players.map((player, index) => {
       if (index === currentTurn) {
         return isCorrect
@@ -233,6 +235,7 @@ const BoardCell = () => {
       return player;
     });
 
+    // Se calcula el nuevo turno y se genera una nueva ecuación
     const newTurn = (currentTurn + 1) % players.length;
     const newEquation = generateNewEquation();
     const boardState = {
@@ -243,14 +246,16 @@ const BoardCell = () => {
       gameStats: newGameStats,
     };
 
+    // Se espera 1.5 segundos para mostrar el feedback, luego se actualiza el estado
     setTimeout(() => {
       setShowFeedback({ show: false, isCorrect: false });
       setSelectedNumber(null);
-      // Actualizamos el estado local para reflejar la jugada de inmediato
+      // Se actualiza el estado local para reflejar la jugada de inmediato
       setEquation(newEquation);
       setPlayers(updatedPlayers);
       setCurrentTurn(newTurn);
       setGameStats(newGameStats);
+      // Se emite el nuevo estado del tablero vía socket
       emitBoardUpdate(boardState);
     }, 1500);
   };
