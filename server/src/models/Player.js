@@ -3,6 +3,11 @@ import mongoose from 'mongoose';
 
 const playerSchema = new mongoose.Schema(
   {
+    playerId: {  // Este campo almacenará el id que envías desde el cliente
+      type: String,
+      required: true,
+      unique: true,
+    },
     username: { 
       type: String, 
       required: [true, "El campo 'username' es obligatorio"], 

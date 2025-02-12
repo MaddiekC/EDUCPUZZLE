@@ -52,18 +52,23 @@ class SocketService {
 
     // 2. joinGame: Agrega al jugador al juego
     socket.on("joinGame", async (data) => {
-      const { username, gameId } = data;
+      // Extraer username, gameId y userId
+      const { username, gameId, userId } = data;
       try {
-        const player = await gameService.addPlayerToGame(gameId, username);
+        // Pasa el userId a la función addPlayerToGame
+        const player = await gameService.addPlayerToGame(gameId, username, userId);
+        
         // Guardamos la información de la conexión para desconectar luego si es necesario
         this.connections.set(socket.id, {
           gameId,
           playerId: player._id ? player._id.toString() : player.id,
         });
         socket.join(gameId);
+        
         // Emitir que un jugador se unió, con la lista actualizada
         const players = await gameService.getPlayers(gameId);
         this.io.to(gameId).emit("playerJoined", { player, players });
+        
         // Emitir el estado completo del juego a la sala
         const gameState = await gameService.getGameState(gameId);
         this.io.to(gameId).emit("gameStateUpdated", gameState);
@@ -71,6 +76,7 @@ class SocketService {
         socket.emit("error", { message: error.message });
       }
     });
+    
 
     // 3. playerMove: Procesa el movimiento del jugador que debe estar en su turno
     socket.on("playerMove", async (data) => {

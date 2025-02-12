@@ -1,145 +1,53 @@
-// server/src/services/socketService.js
-import { Server } from "socket.io";
-import gameService from "./gameService.js"; // Asegúrate de que la ruta sea la correcta
+// server/src/services/gameService.js
+import games from "./gameStore.js"; // Importa el almacén de juegos
+import Player from "../models/Player.js";
 
-class SocketService {
+class GameService {
   constructor() {
-    this.io = null; // Se inicializará con el servidor HTTP
-    this.connections = new Map(); // Almacena información de los sockets conectados
+    // Usa el objeto de juegos importado, ya que es el mismo para todos los módulos
+    this.games = games;
   }
-
+  
   /**
-   * Inicializa el servidor de sockets con el servidor HTTP.
-   * @param {http.Server} server
+   * Agrega un jugador al juego usando el userId proporcionado.
+   * Si el jugador ya existe en el juego (según ese ID), lo retorna.
+   * @param {string} gameId 
+   * @param {string} username 
+   * @param {string} userId  -> El id correcto enviado desde el cliente
+   * @returns {Player} El jugador creado o existente.
    */
-  initialize(server) {
-    this.io = new Server(server, {
-      cors: {
-        origin: "*", // Cambia esto en producción
-        methods: ["GET", "POST"],
-      },
-    });
+  async addPlayerToGame(gameId, username, userId) {
+    const game = this.games[gameId];
+    if (!game) {
+      throw new Error("Game not found");
+    }
 
-    this.io.on("connection", (socket) => {
-      console.log(`New connection: ${socket.id}`);
-      this.setupListeners(socket);
-    });
-  }
-
-  /**
-   * Configura los listeners para cada socket.
-   * Se incluyen eventos para:
-   * - joinRoom: unirse a la sala (gameId)
-   * - joinGame: para agregar al jugador al juego (además de joinRoom)
-   * - playerMove: movimientos de jugador
-   * - startGame: para iniciar el juego
-   * - getGameState: para solicitar el estado actual
-   * - disconnect: para gestionar la desconexión
-   * @param {SocketIO.Socket} socket
-   */
-  setupListeners(socket) {
-    // Permite que el cliente se una a la sala del juego
-    socket.on("joinRoom", ({ gameId }) => {
-      socket.join(gameId);
-      console.log(`Socket ${socket.id} se unió a la sala ${gameId}`);
-
-      // Si el juego existe, enviar el estado actual al socket que se acaba de unir.
-      const game = gameService.games[gameId];
-      if (game) {
-        socket.emit("gameStateUpdated", game.getState());
-      }
-    });
-
-    // Listener para que un jugador se una a un juego vía sockets
-    socket.on("joinGame", async (data) => {
-      const { username, gameId } = data;
-      try {
-        const player = await gameService.addPlayerToGame(gameId, username);
-        // Guardamos la información de la conexión para luego poder desconectar
-        this.connections.set(socket.id, {
-          gameId,
-          playerId: player._id ? player._id.toString() : player.id,
-        });
-        // Unir el socket a la sala correspondiente (si no se ha hecho)
-        socket.join(gameId);
-        // Emitir el evento de que un jugador se unió, con la lista actualizada
-        const players = await gameService.getPlayers(gameId);
-        this.io.to(gameId).emit("playerJoined", { player, players });
-        // Emitir el estado completo del juego a la sala
-        const gameState = await gameService.getGameState(gameId);
-        this.io.to(gameId).emit("gameStateUpdated", gameState);
-      } catch (error) {
-        socket.emit("error", { message: error.message });
-      }
-    });
-
-    // Listener para movimientos de jugadores
-    socket.on("playerMove", async (data) => {
-      const { gameId, move } = data;
-      try {
-        const updatedGameState = await gameService.processPlayerMove(gameId, move);
-        this.io.to(gameId).emit("gameStateUpdated", updatedGameState);
-      } catch (error) {
-        socket.emit("error", { message: error.message });
-      }
-    });
-
-    // Listener para iniciar el juego (único listener, sin duplicados)
-    socket.on("startGame", async ({ gameId }) => {
-      console.log(`startGame event received from socket ${socket.id} for gameId: ${gameId}`);
-      const game = gameService.games[gameId];
-      if (game) {
-        // Opcional: marcar el juego como iniciado (si existe ese método)
-        if (typeof game.startGame === "function") {
-          game.startGame();
-          console.log(`Juego ${gameId} marcado como iniciado.`);
-        }
-        game.updateGameState();
-        console.log(`Emitiendo evento gameStarted a todos en la sala ${gameId}`);
-        // Emitir el evento 'gameStarted' con los datos necesarios
-        this.io.to(gameId).emit("gameStarted", {
-          gameId,
-          players: Array.from(game.players.values()),
-        });
-        console.log(`Evento gameStarted emitido correctamente para gameId: ${gameId}`);
-      } else {
-        console.error(`Game with id ${gameId} not found`);
-        socket.emit("error", { message: "Game not found" });
-      }
-    });
-
-    // Listener para solicitar el estado actual del juego
-    socket.on("getGameState", async ({ gameId }) => {
-      const game = gameService.games[gameId];
-      if (game) {
-        socket.emit("gameStateUpdated", game.getState());
-      }
-    });
-
-    // Listener para la desconexión
-    socket.on("disconnect", () => {
-      const connectionInfo = this.connections.get(socket.id);
-      if (connectionInfo) {
-        const { gameId, playerId } = connectionInfo;
-        gameService.removePlayerFromGame(gameId, playerId);
-        this.io.to(gameId).emit("playerLeft", { playerId });
-        this.connections.delete(socket.id);
-        console.log(`Connection closed: ${socket.id}`);
-      }
-    });
-  }
-
-  /**
-   * Emite un evento a todos los sockets de la sala (gameId).
-   * @param {string} gameId
-   * @param {string} event
-   * @param {any} data
-   */
-  broadcastUpdate(gameId, event, data) {
-    if (this.io) {
-      this.io.to(gameId).emit(event, data);
+    // Si el jugador no existe en el juego, lo agrega
+    if (!game.players.has(userId)) {
+      // Aquí usamos el userId que viene del cliente
+      const player = new Player({ _id: userId, username});
+      game.joinGame(player);
+      game.updateGameState();
+      return player;
+    } else {
+      // Si ya existe, retornarlo
+      return game.players.get(userId);
     }
   }
+
+  async getPlayers(gameId) {
+    const game = this.games[gameId];
+    if (!game) throw new Error("Game not found");
+    return Array.from(game.players.values());
+  }
+
+  async getGameState(gameId) {
+    const game = this.games[gameId];
+    if (!game) throw new Error("Game not found");
+    return game.getState();
+  }
+
+  // Aquí podrías incluir processPlayerMove, removePlayerFromGame, etc.
 }
 
-export default new SocketService();
+export default new GameService();

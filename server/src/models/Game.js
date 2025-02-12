@@ -36,9 +36,11 @@ class Game {
     this.currentPuzzle.shufflePieces();
   }
 
-  // Agrega al jugador si es una instancia de Player y aún no está agregado
   joinGame(player) {
-    const playerId = player._id ? player._id.toString() : player.id;
+    // Prioriza player.playerId; si no existe, usa _id o player.id
+    const playerId = player.playerId
+      ? player.playerId.toString()
+      : (player._id ? player._id.toString() : player.id);
     if (player instanceof Player && !this.players.has(playerId)) {
       this.players.set(playerId, player);
     }

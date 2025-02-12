@@ -11,7 +11,7 @@ const BoardCell = () => {
   const { gameId } = useParams();
   const localPlayerId = localStorage.getItem("userId");
   console.log("Local player id:", localPlayerId);
-
+  const localUsername = localStorage.getItem("username")?.trim();
   // Estado para mensajes emergentes
   const [popupMessage, setPopupMessage] = useState("");
 
@@ -58,10 +58,12 @@ const BoardCell = () => {
     const savedState = getSavedState();
     return (savedState && savedState.equation) || { left: 9, operator: "x", right: "?", result: 81 };
   });
+
   const [players, setPlayers] = useState(() => {
     const savedState = getSavedState();
     return (savedState && savedState.players) || initialPlayersFromNav;
   });
+  
   const [currentTurn, setCurrentTurn] = useState(() => {
     const savedState = getSavedState();
     return savedState && typeof savedState.currentTurn === "number" ? savedState.currentTurn : 0;
@@ -189,8 +191,10 @@ const BoardCell = () => {
    */
   const handleNumberSelect = async (number) => {
     const currentPlayer = players[currentTurn];
-    const currentPlayerId = (currentPlayer.id || currentPlayer._id)?.toString().trim();
-    const localId = localPlayerId?.toString().trim();
+    console.log("currentPlayer:",currentPlayer)
+
+    const currentPlayerId = (currentPlayer.id || currentPlayer.username)?.toString().trim();
+    const localId = localUsername?.toString().trim();
     console.log("Comparando turno: currentPlayerId:", currentPlayerId, "localId:", localId);
     if (currentPlayerId !== localId) {
       setPopupMessage("No es tu turno");

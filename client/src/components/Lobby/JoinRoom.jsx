@@ -6,10 +6,13 @@ const JoinRoom = () => {
   const [gameId, setGameId] = useState('');
   const { socket } = useSocket();  // Usando el hook de socket
 
+  // Obtén el ID del usuario desde localStorage (asegúrate de que esté guardado correctamente)
+  const localPlayerId = localStorage.getItem("userId");
+  
   const handleJoinGame = () => {
-    if (username && gameId) {
+    if (username && gameId && localPlayerId) {
       // Emitir evento para unirse al juego
-      socket.emit('joinGame', { username, gameId }, (response) => {
+      socket.emit('joinGame', { username, gameId, userId: localPlayerId }, (response) => {
         if (response.success) {
           //alert('Te has unido al juego');
         } else {

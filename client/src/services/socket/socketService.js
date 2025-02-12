@@ -2,7 +2,7 @@
 import { io } from "socket.io-client";
 
 // Ajusta la URL a la de tu servidor
-const socket = io("http://192.168.100.214:3000");
+const socket = io("http://192.168.100.13:3000");
 
 const socketService = {
   /**

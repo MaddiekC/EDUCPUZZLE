@@ -67,6 +67,7 @@ const Login = () => {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("username", user); 
       if (userId) localStorage.setItem("userId", userId);
+      console.log(userId)
 
       setUser("");
       setPwd("");

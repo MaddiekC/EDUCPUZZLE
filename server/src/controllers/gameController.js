@@ -1,14 +1,14 @@
-// server/src/controllers/GameController.js
-
+// server/src/controllers/gameController.js
 import Game from "../models/Game.js";
 import Player from "../models/Player.js";
 import Puzzle from "../models/Puzzle.js";
 import socketService from "../services/socketService.js";
+import games from "../services/gameStore.js";  // Importa el almacén de juegos
 
 class GameController {
   constructor() {
-    // Almacenamos todos los juegos en memoria en un objeto
-    this.games = {};
+    // En lugar de this.games = {}, usamos el objeto importado
+    this.games = games;
     this.socketManager = socketService;
 
     // Vinculación de métodos si es necesario
