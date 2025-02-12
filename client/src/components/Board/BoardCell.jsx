@@ -73,7 +73,9 @@ const BoardCell = () => {
 
   const [currentTurn, setCurrentTurn] = useState(() => {
     const savedState = getSavedState();
-    return typeof savedState?.currentTurn === "number" ? savedState.currentTurn : 0;
+    return typeof savedState?.currentTurn === "number"
+      ? savedState.currentTurn
+      : 0;
   });
 
   const [gameStats, setGameStats] = useState(() => {
@@ -289,7 +291,11 @@ const BoardCell = () => {
 
         {/* Mensaje de feedback (correcto/incorrecto) */}
         {showFeedback.show && (
-          <div className={`feedback-message ${showFeedback.isCorrect ? "correct" : "wrong"}`}>
+          <div
+            className={`feedback-message ${
+              showFeedback.isCorrect ? "correct" : "wrong"
+            }`}
+          >
             {showFeedback.isCorrect ? (
               <CheckCircle2 className="feedback-icon" />
             ) : (
