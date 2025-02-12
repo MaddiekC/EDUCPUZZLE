@@ -37,7 +37,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://192.168.100.214:5000/',
+        url: 'http://192.168.100.13:5000/',
         description: 'Servidor local',
       },
     ],
@@ -80,5 +80,5 @@ const PORT = process.env.PORT || 5000;
 // Iniciar el servidor
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
-  console.log(`Documentación Swagger disponible en: http://192.168.100.214:5000/api-docs`);
+  console.log(`Documentación Swagger disponible en: http://192.168.100.13:5000/api-docs`);
 });

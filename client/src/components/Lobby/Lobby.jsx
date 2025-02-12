@@ -66,54 +66,6 @@ StartGameButton.propTypes = {
   gameStarting: PropTypes.bool,
 };
 
-// Componente para el chat (simulación).
-const ChatBox = () => {
-  const [messages, setMessages] = useState([]);
-  const [inputMsg, setInputMsg] = useState("");
-
-  const handleSendMessage = () => {
-    if (!inputMsg.trim()) return;
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { id: Date.now(), text: inputMsg },
-    ]);
-    setInputMsg("");
-  };
-
-  return (
-    <div className="chat-box">
-      <div className="chat-header">
-        <h4>Chat de Duelo</h4>
-      </div>
-      <div className="chat-messages">
-        {messages.length === 0 ? (
-          <p className="no-messages">No hay mensajes aún.</p>
-        ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="chat-message">
-              {msg.text}
-            </div>
-          ))
-        )}
-      </div>
-      <div className="chat-input-container">
-        <input
-          type="text"
-          className="chat-input"
-          placeholder="Escribe tu mensaje..."
-          value={inputMsg}
-          onChange={(e) => setInputMsg(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSendMessage();
-          }}
-        />
-        <button className="chat-send-button" onClick={handleSendMessage}>
-          Enviar
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const Lobby = () => {
   const navigate = useNavigate();
@@ -306,9 +258,6 @@ const Lobby = () => {
             gameStarting={gameStarting}
           />
         )}
-      </div>
-      <div className="chat-section">
-        <ChatBox />
       </div>
     </div>
   );

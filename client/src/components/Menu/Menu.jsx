@@ -129,34 +129,11 @@ const Menu = () => {
     }
   };
 
-  // Función para obtener la lista de jugadores (opcional)
-  const fetchPlayers = async () => {
-    try {
-      const response = await axios.get(`/game/${gameIdInput}/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setPlayers(response.data.players);
-    } catch (err) {
-      setError("Error al obtener jugadores");
-      setShowError(true);
-    }
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <div className="menu-container">
         <p className="welcome-message">Bienvenido, {username}!</p>
-        <h1>Selecciona un modo de juego</h1>
-
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate("/boardSoloPL")}
-        >
-          Solo
-        </Button>
+        <h1>Bienvenido al Multijugador</h1>
 
         <Button
           variant="contained"
@@ -195,18 +172,6 @@ const Menu = () => {
                 Unirse a Partida
               </Button>
             </div>
-
-            {/* Botón para cargar jugadores (opcional) */}
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => {
-                setShowPlayers(!showPlayers);
-                if (!showPlayers) fetchPlayers();
-              }}
-            >
-              Ver Jugadores
-            </Button>
 
             {showPlayers && (
               <div>
