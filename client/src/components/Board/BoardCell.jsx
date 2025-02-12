@@ -1,83 +1,37 @@
 /* global localStorage */
-// client/src/components/BoardCell.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import PuzzleBoard from "../Puzzle/PuzzleBoard";
 import { AlertCircle, CheckCircle2, Trophy } from "lucide-react";
+import { useLocation, useParams } from "react-router-dom";
+import socketService from "../../services/socket/socketService";
 import "./BoardCell.css";
-import { useLocation } from "react-router-dom";
 
 const BoardCell = () => {
-  //Obtiene el ID del jugador local
+  // Obtener el gameId desde la URL y el id del jugador local desde localStorage
+  const { gameId } = useParams();
   const localPlayerId = localStorage.getItem("userId");
-  console.log(localPlayerId)
+  console.log("Local player id:", localPlayerId);
 
-  //Mensaje de alerta 
+  // Estado para mensajes emergentes
   const [popupMessage, setPopupMessage] = useState("");
 
-  // Extraer los jugadores enviados desde el Lobby
+  // Extraer jugadores iniciales enviados desde el Lobby
   const location = useLocation();
   const initialPlayersFromNav = location.state?.players || [];
 
-  // Función para obtener el estado guardado en localStorage (o devolver null)
+  // Función para recuperar estado guardado (o devolver null)
   const getSavedState = () => {
     const saved = localStorage.getItem("boardCellState");
     return saved ? JSON.parse(saved) : null;
   };
 
-  // Inicializar cada estado utilizando una función lazy que verifique localStorage
-  const [equation, setEquation] = useState(() => {
-    const savedState = getSavedState();
-    return (savedState && savedState.equation) || {
-      left: 9,
-      operator: "x",
-      right: "?",
-      result: 81,
-    };
-  });
-
-  const [players, setPlayers] = useState(() => {
-    const savedState = getSavedState();
-    return (savedState && savedState.players) || initialPlayersFromNav;
-  });
-
-  const [currentTurn, setCurrentTurn] = useState(() => {
-    const savedState = getSavedState();
-    return savedState && typeof savedState.currentTurn === "number"
-      ? savedState.currentTurn
-      : 0;
-  });
-
-  const [gameStats, setGameStats] = useState(() => {
-    const savedState = getSavedState();
-    return (
-      (savedState && savedState.gameStats) || {
-        totalMoves: 0,
-        correctAnswers: 0,
-        bestStreak: 0,
-      }
-    );
-  });
-
-  const [selectedNumber, setSelectedNumber] = useState(null);
-  const [showFeedback, setShowFeedback] = useState({
-    show: false,
-    isCorrect: false,
-  });
-
-  // Generamos números del 1 al 9 para el tablero
-  const availableNumbers = Array.from({ length: 9 }, (_, i) => ({
-    value: i + 1,
-    isDisabled: false,
-    isSelected: selectedNumber === i + 1,
-  }));
-
-  // Generador de ecuaciones ajustado
+  /**
+   * Generador de ecuaciones modificado para retornar la nueva ecuación
+   */
   const generateNewEquation = useCallback(() => {
     const operators = ["x", "+", "-"];
-    const randomOperator =
-      operators[Math.floor(Math.random() * operators.length)];
+    const randomOperator = operators[Math.floor(Math.random() * operators.length)];
     let newLeft, newRight, result;
-
     do {
       newLeft = Math.floor(Math.random() * 9) + 1;
       newRight = Math.floor(Math.random() * 9) + 1;
@@ -96,16 +50,86 @@ const BoardCell = () => {
           result = newLeft * newRight;
       }
     } while (result > 81 || result < 1);
-
-    setEquation({
-      left: newLeft,
-      operator: randomOperator,
-      right: "?",
-      result,
-    });
+    return { left: newLeft, operator: randomOperator, right: "?", result };
   }, []);
 
-  // Validación de la respuesta
+  // Estados iniciales de la partida (se intenta cargar de localStorage o se usan valores por defecto)
+  const [equation, setEquation] = useState(() => {
+    const savedState = getSavedState();
+    return (savedState && savedState.equation) || { left: 9, operator: "x", right: "?", result: 81 };
+  });
+  const [players, setPlayers] = useState(() => {
+    const savedState = getSavedState();
+    return (savedState && savedState.players) || initialPlayersFromNav;
+  });
+  const [currentTurn, setCurrentTurn] = useState(() => {
+    const savedState = getSavedState();
+    return savedState && typeof savedState.currentTurn === "number" ? savedState.currentTurn : 0;
+  });
+  const [gameStats, setGameStats] = useState(() => {
+    const savedState = getSavedState();
+    return (
+      (savedState && savedState.gameStats) || {
+        totalMoves: 0,
+        correctAnswers: 0,
+        bestStreak: 0,
+      }
+    );
+  });
+
+  const [selectedNumber, setSelectedNumber] = useState(null);
+  const [showFeedback, setShowFeedback] = useState({ show: false, isCorrect: false });
+
+  // Lógica para el tiempo límite por turno
+  const TIME_LIMIT = 10; // segundos
+  const [turnTimer, setTurnTimer] = useState(TIME_LIMIT);
+  const turnAnsweredRef = useRef(false);
+
+  /**
+   * --- SOCKETS PARA SINCRONIZAR LA PARTIDA ---
+   *
+   * Al montar el componente se emite el evento "joinGameBoard" para unirse a la sala del juego.
+   * Se escucha el evento "boardUpdate:{gameId}" para actualizar el estado de la partida.
+   */
+  useEffect(() => {
+    if (!gameId) return;
+    socketService.emit("joinGameBoard", { gameId });
+    const handleBoardUpdate = (data) => {
+      if (data.gameId === gameId && data.boardState) {
+        const { equation, players, currentTurn, gameStats } = data.boardState;
+        setEquation(equation);
+        setPlayers(players);
+        setCurrentTurn(currentTurn);
+        setGameStats(gameStats);
+      }
+    };
+    socketService.on(`boardUpdate:${gameId}`, handleBoardUpdate);
+    return () => {
+      socketService.off(`boardUpdate:${gameId}`, handleBoardUpdate);
+      socketService.emit("leaveGameBoard", { gameId });
+    };
+  }, [gameId]);
+
+  // Mostrar en consola el turno actual (id y nombre)
+  useEffect(() => {
+    if (players.length > 0) {
+      const currentPlayer = players[currentTurn];
+      console.log(
+        "Turno actual:",
+        (currentPlayer.id || currentPlayer._id)?.toString().trim(),
+        currentPlayer.username
+      );
+    }
+  }, [currentTurn, players]);
+
+  // Generamos la grilla de números (1 al 9)
+  const availableNumbers = Array.from({ length: 9 }, (_, i) => ({
+    value: i + 1,
+    isDisabled: false,
+    isSelected: selectedNumber === i + 1,
+  }));
+
+  // Función para validar la respuesta según el operador de la ecuación
   const validateAnswer = useCallback(
     (selected) => {
       switch (equation.operator) {
@@ -122,136 +146,126 @@ const BoardCell = () => {
     [equation]
   );
 
-  // Manejo de la selección de número
+  /**
+   * Función para emitir el nuevo estado de la partida vía socket y guardarlo localmente.
+   */
+  const emitBoardUpdate = (boardState) => {
+    socketService.emit("boardUpdate", { gameId, boardState });
+    localStorage.setItem("boardCellState", JSON.stringify(boardState));
+  };
+
+  /**
+   * Al agotarse el tiempo de turno se actualiza el estado (se suma un movimiento y se reinicia la racha)
+   * y se pasa al siguiente jugador.
+   */
+  const handleTurnTimeout = () => {
+    setPopupMessage("Tiempo agotado");
+    const newGameStats = {
+      ...gameStats,
+      totalMoves: gameStats.totalMoves + 1,
+    };
+    const updatedPlayers = players.map((player, index) =>
+      index === currentTurn ? { ...player, streak: 0 } : player
+    );
+    const newTurn = (currentTurn + 1) % players.length;
+    const newEquation = generateNewEquation();
+    const boardState = {
+      equation: newEquation,
+      players: updatedPlayers,
+      currentTurn: newTurn,
+      gameStats: newGameStats,
+    };
+    setTimeout(() => {
+      setPopupMessage("");
+      emitBoardUpdate(boardState);
+    }, 1500);
+  };
+
+  /**
+   * Manejo de la selección de número.
+   * Primero se valida que sea el turno del jugador local comparando los IDs.
+   * Si es su turno, se valida la respuesta, se actualizan estadísticas y se prepara el nuevo estado,
+   * el cual se emite a través de socket para que ambos clientes se actualicen.
+   */
   const handleNumberSelect = async (number) => {
-    // Comprobar si es el turno del jugador local
-    if (players[currentTurn].id !== localPlayerId) {
+    const currentPlayer = players[currentTurn];
+    const currentPlayerId = (currentPlayer.id || currentPlayer._id)?.toString().trim();
+    const localId = localPlayerId?.toString().trim();
+    console.log("Comparando turno: currentPlayerId:", currentPlayerId, "localId:", localId);
+    if (currentPlayerId !== localId) {
       setPopupMessage("No es tu turno");
       setTimeout(() => {
         setPopupMessage("");
       }, 5000);
-      return; // Si no es el turno del jugador local, no se ejecuta nada
+      return;
     }
-
+    // Marcar que ya se respondió en el turno para detener el timeout
+    turnAnsweredRef.current = true;
     setSelectedNumber(number);
     const isCorrect = validateAnswer(number);
     setShowFeedback({ show: true, isCorrect });
 
-    setGameStats((prev) => ({
-      totalMoves: prev.totalMoves + 1,
-      correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
-      bestStreak: Math.max(
-        prev.bestStreak,
-        isCorrect ? players[currentTurn].streak + 1 : 0
-      ),
-    }));
-
-    if (isCorrect) {
-      const updatedPlayers = players.map((player, index) =>
-        index === currentTurn
-          ? { ...player, score: player.score + 10, streak: player.streak + 1 }
-          : player
-      );
-      setPlayers(updatedPlayers);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      generateNewEquation();
-      setCurrentTurn((prevTurn) => (prevTurn + 1) % players.length);
-    } else {
-      const updatedPlayers = players.map((player, index) =>
-        index === currentTurn ? { ...player, streak: 0 } : player
-      );
-      setPlayers(updatedPlayers);
-    }
-
+    // Actualizar estadísticas y el estado del jugador actual
+    const newGameStats = {
+      ...gameStats,
+      totalMoves: gameStats.totalMoves + 1,
+      correctAnswers: gameStats.correctAnswers + (isCorrect ? 1 : 0),
+      bestStreak: Math.max(gameStats.bestStreak, isCorrect ? (currentPlayer.streak || 0) + 1 : 0),
+    };
+    const updatedPlayers = players.map((player, index) => {
+      if (index === currentTurn) {
+        if (isCorrect) {
+          return { ...player, score: (player.score || 0) + 10, streak: (player.streak || 0) + 1 };
+        } else {
+          return { ...player, streak: 0 };
+        }
+      }
+      return player;
+    });
+    const newTurn = (currentTurn + 1) % players.length;
+    const newEquation = generateNewEquation();
+    const boardState = {
+      equation: newEquation,
+      players: updatedPlayers,
+      currentTurn: newTurn,
+      gameStats: newGameStats,
+    };
     setTimeout(() => {
       setShowFeedback({ show: false, isCorrect: false });
       setSelectedNumber(null);
+      emitBoardUpdate(boardState);
     }, 1500);
   };
 
-  // Al montar el componente, solo generamos una nueva ecuación si NO hay estado guardado
+  /**
+   * Efecto para el contador de tiempo del turno.
+   * Se reinicia en cada cambio de turno y, si se agota el tiempo sin respuesta, se llama a handleTurnTimeout.
+   */
   useEffect(() => {
-    const savedState = getSavedState();
-    if (!savedState) {
-      generateNewEquation();
-    }
-  }, [generateNewEquation]);
-
-  // Guardar en localStorage cada vez que cambie el estado relevante
-  useEffect(() => {
-    const stateToSave = {
-      equation,
-      players,
-      currentTurn,
-      gameStats,
-    };
-    localStorage.setItem("boardCellState", JSON.stringify(stateToSave));
-  }, [equation, players, currentTurn, gameStats]);
-
-  // Efecto para el "hitbox magnético" (sin cambios)
-  useEffect(() => {
-    const grid = document.querySelector(".numbers-grid");
-    if (!grid) return;
-    const buttons = grid.querySelectorAll(".number-button");
-    const threshold = 100; // rango de detección en píxeles
-
-    const handleMouseMove = (e) => {
-      let closestButton = null;
-      let minDistance = Infinity;
-      buttons.forEach((button) => {
-        const rect = button.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const dx = e.clientX - centerX;
-        const dy = e.clientY - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestButton = button;
+    setTurnTimer(TIME_LIMIT);
+    turnAnsweredRef.current = false;
+    const intervalId = setInterval(() => {
+      setTurnTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalId);
+          if (!turnAnsweredRef.current) {
+            handleTurnTimeout();
+          }
+          return TIME_LIMIT;
         }
+        return prev - 1;
       });
-      buttons.forEach((button) => {
-        if (button === closestButton && minDistance < threshold) {
-          const scale = 1 + 0.3 * (1 - minDistance / threshold);
-          button.style.transform = `scale(${scale})`;
-        } else {
-          button.style.transform = "";
-        }
-      });
-    };
-
-    const handleMouseLeave = () => {
-      buttons.forEach((button) => {
-        button.style.transform = "";
-      });
-    };
-
-    grid.addEventListener("mousemove", handleMouseMove);
-    grid.addEventListener("mouseleave", handleMouseLeave);
-
-    return () => {
-      grid.removeEventListener("mousemove", handleMouseMove);
-      grid.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [currentTurn]);
 
   return (
     <div className="board-wrapper">
-      {/* Popup para mostrar mensajes (se renderiza solo si popupMessage tiene valor) */}
-      {popupMessage && (
-        <div className="popup-message">
-          {popupMessage}
-        </div>
-      )}
-
-      {/* Izquierda: Información del juego */}
+      {popupMessage && <div className="popup-message">{popupMessage}</div>}
       <div className="game-info">
         <div className="players-section">
           {players.map((player, index) => (
-            <div
-              key={player.id || index}
-              className={`player-card ${currentTurn === index ? "active" : ""}`}
-            >
+            <div key={player.id || player._id || index} className={`player-card ${currentTurn === index ? "active" : ""}`}>
               <h3 className="player-username">{player.username}</h3>
               <span className="player-score">{player.score}</span>
               <div className="player-stats">
@@ -269,18 +283,14 @@ const BoardCell = () => {
             <span>=</span>
             <span>{equation.result}</span>
           </div>
+          <div className="turn-timer">
+            Tiempo restante: {turnTimer} segundo{turnTimer !== 1 ? "s" : ""}
+          </div>
         </div>
 
         {showFeedback.show && (
-          <div
-            className={`feedback-message ${showFeedback.isCorrect ? "correct" : "wrong"
-              }`}
-          >
-            {showFeedback.isCorrect ? (
-              <CheckCircle2 className="feedback-icon" />
-            ) : (
-              <AlertCircle className="feedback-icon" />
-            )}
+          <div className={`feedback-message ${showFeedback.isCorrect ? "correct" : "wrong"}`}>
+            {showFeedback.isCorrect ? <CheckCircle2 className="feedback-icon" /> : <AlertCircle className="feedback-icon" />}
           </div>
         )}
 
@@ -288,12 +298,9 @@ const BoardCell = () => {
           {availableNumbers.map(({ value, isDisabled, isSelected }) => (
             <button
               key={value}
-              className={`number-button ${isSelected ? "selected" : ""} ${showFeedback.show && isSelected
-                ? showFeedback.isCorrect
-                  ? "correct-answer"
-                  : "wrong-answer"
-                : ""
-                }`}
+              className={`number-button ${isSelected ? "selected" : ""} ${
+                showFeedback.show && isSelected ? (showFeedback.isCorrect ? "correct-answer" : "wrong-answer") : ""
+              }`}
               onClick={() => handleNumberSelect(value)}
               disabled={isDisabled || showFeedback.show}
             >
@@ -310,7 +317,6 @@ const BoardCell = () => {
         </div>
       </div>
 
-      {/* Derecha: Puzzle */}
       <div className="puzzle-wrapper">
         <h2>Puzzle</h2>
         <PuzzleBoard correctAnswersCount={gameStats.correctAnswers} />
