@@ -123,9 +123,10 @@ const Lobby = () => {
   const [loading, setLoading] = useState(true);
   const [waitingTime, setWaitingTime] = useState(0);
   const [gameStarting, setGameStarting] = useState(false);
-  const [countdown, setCountdown] = useState(null); // Estado para la cuenta regresiva
+  const [countdown, setCountdown] = useState(null);
 
-  const isHost = localStorage.getItem("isHost") === "true";
+  // Ya no se usa la distinción de host para iniciar el duelo; ambos jugadores pueden hacerlo.
+  // const isHost = localStorage.getItem("isHost") === "true";
 
   const fetchPlayers = useCallback(async () => {
     try {
@@ -158,7 +159,7 @@ const Lobby = () => {
         console.log("Ejecutando redirección a /boardCell/" + gameId);
         navigate(`/boardCell/${gameId}`, {
           state: { players },
-          replace: true
+          replace: true,
         });
       }, 1000);
       return () => clearTimeout(redirectTimeout);
@@ -233,7 +234,7 @@ const Lobby = () => {
     };
   }, [gameId]);
 
-  // Función que, desde el host, inicia la cuenta regresiva y emite cada segundo el valor actualizado.
+  // Función que inicia la cuenta regresiva y emite cada segundo el valor actualizado.
   const startCountdown = () => {
     let counter = 5;
     setCountdown(counter);
@@ -245,16 +246,16 @@ const Lobby = () => {
       if (counter <= 0) {
         clearInterval(countdownInterval);
         setGameStarting(true);
-        // El host emite el evento para iniciar el juego.
+        // Se emite el evento para iniciar el juego.
         socketService.emit("startGame", { gameId, players });
       }
     }, 1000);
   };
 
-  // Función que se ejecuta al presionar "Iniciar Duelo" (solo para el host).
+  // Función que se ejecuta al presionar "Iniciar Duelo". Ahora, cualquiera puede iniciarla sin esperar a otro jugador.
   const handleStartGame = () => {
-    if (players.length < 2) return;
-    console.log("El host inicia la cuenta regresiva para el duelo...");
+    if (countdown !== null) return;
+    console.log("Iniciando cuenta regresiva para el duelo...");
     startCountdown();
   };
 
@@ -267,8 +268,8 @@ const Lobby = () => {
     <div className="lobby-container">
       <LobbyHeader gameId={gameId} />
       <div className="top-controls">
-        <button 
-          className="leave-lobby-button" 
+        <button
+          className="leave-lobby-button"
           onClick={handleLeaveLobby}
           disabled={gameStarting}
         >
@@ -294,34 +295,16 @@ const Lobby = () => {
         )}
       </div>
       <div className="controls-section">
-        {isHost ? (
-          <>
-            {players.length < 2 ? (
-              <p className="lobby-status">
-                Partida creada, esperando que jugadores se conecten...
-              </p>
-            ) : (
-              countdown !== null ? (
-                <p className="lobby-countdown">
-                  El duelo inicia en: {countdown} segundo{countdown !== 1 ? "s" : ""}
-                </p>
-              ) : (
-                <StartGameButton
-                  onStart={handleStartGame}
-                  disabled={players.length < 2 || countdown !== null}
-                  gameStarting={gameStarting}
-                />
-              )
-            )}
-          </>
-        ) : (
-          <p className="lobby-status">
-            {countdown !== null
-              ? `El duelo inicia en: ${countdown} segundo${countdown !== 1 ? "s" : ""}`
-              : gameStarting
-              ? "Iniciando duelo..."
-              : "Espera a que el host inicie la partida..."}
+        {countdown !== null ? (
+          <p className="lobby-countdown">
+            El duelo inicia en: {countdown} segundo{countdown !== 1 ? "s" : ""}
           </p>
+        ) : (
+          <StartGameButton
+            onStart={handleStartGame}
+            disabled={countdown !== null}
+            gameStarting={gameStarting}
+          />
         )}
       </div>
       <div className="chat-section">

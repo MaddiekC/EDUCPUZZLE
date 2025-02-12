@@ -1,3 +1,4 @@
+/* global localStorage */
 // client/src/components/BoardCell.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import PuzzleBoard from "../Puzzle/PuzzleBoard";
