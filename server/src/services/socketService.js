@@ -28,87 +28,72 @@ class SocketService {
 
   /**
    * Configura los listeners para cada socket.
-   * Se incluyen eventos para:
-   * - joinRoom: unirse a la sala (gameId)
-   * - joinGame: para agregar al jugador al juego (además de joinRoom)
-   * - playerMove: movimientos de jugador (verificando que sea el turno correcto)
-   * - startGame: para iniciar el juego
-   * - gameCountdown: para sincronizar la cuenta regresiva
-   * - getGameState: para solicitar el estado actual
-   * - disconnect: para gestionar la desconexión
    * @param {SocketIO.Socket} socket
    */
   setupListeners(socket) {
-    // 1. joinRoom: Permite que el cliente se una a la sala del juego
+    const io = this.io; // Capturamos la instancia de io
+
+    // Evento para que el cliente se una a la sala del juego
     socket.on("joinRoom", ({ gameId }) => {
       socket.join(gameId);
       console.log(`Socket ${socket.id} se unió a la sala ${gameId}`);
-      // Si el juego existe, enviamos el estado actual al socket recién unido.
       const game = gameService.games[gameId];
       if (game) {
         socket.emit("gameStateUpdated", game.getState());
       }
     });
 
-    // 2. joinGame: Agrega al jugador al juego
+    // Evento para que el cliente se una a la sala del tablero
+    socket.on("joinGameBoard", ({ gameId }) => {
+      socket.join(gameId);
+      console.log(`Socket ${socket.id} se unió a la sala de board ${gameId}`);
+    });
+
+    // Evento para agregar al jugador al juego
     socket.on("joinGame", async (data) => {
-      // Extraer username, gameId y userId
       const { username, gameId, userId } = data;
       try {
-        // Pasa el userId a la función addPlayerToGame
         const player = await gameService.addPlayerToGame(gameId, username, userId);
-        
-        // Guardamos la información de la conexión para desconectar luego si es necesario
         this.connections.set(socket.id, {
           gameId,
           playerId: player._id ? player._id.toString() : player.id,
         });
         socket.join(gameId);
-        
-        // Emitir que un jugador se unió, con la lista actualizada
         const players = await gameService.getPlayers(gameId);
-        this.io.to(gameId).emit("playerJoined", { player, players });
-        
-        // Emitir el estado completo del juego a la sala
+        io.to(gameId).emit("playerJoined", { player, players });
         const gameState = await gameService.getGameState(gameId);
-        this.io.to(gameId).emit("gameStateUpdated", gameState);
+        io.to(gameId).emit("gameStateUpdated", gameState);
       } catch (error) {
         socket.emit("error", { message: error.message });
       }
     });
-    
 
-    // 3. playerMove: Procesa el movimiento del jugador que debe estar en su turno
+    // Evento para procesar el movimiento del jugador
     socket.on("playerMove", async (data) => {
+      console.log("Evento playerMove recibido:", data);
       const { gameId, playerId, selectedNumber } = data;
       try {
         const game = gameService.games[gameId];
         if (!game) {
           return socket.emit("error", { message: "Game not found" });
         }
-        // Convertimos el Map de jugadores a un array para determinar quién tiene el turno
-        const playersArray = Array.from(game.players.values());
-        if (playersArray.length === 0) {
-          return socket.emit("error", { message: "No players in game" });
-        }
-        const currentPlayer = playersArray[game.currentTurn];
-        if (currentPlayer.id !== playerId) {
-          return socket.emit("error", { message: "Not your turn" });
-        }
-        // Procesamos el movimiento. La función processPlayerMove debe validar la respuesta,
-        // actualizar puntajes, generar nueva ecuación, actualizar la racha, cambiar el turno, etc.
+        
+        // Procesa el movimiento en el servidor
         const updatedGameState = await gameService.processPlayerMove(gameId, {
           playerId,
           selectedNumber,
         });
-        // Emitir el estado actualizado a todos en la sala usando el evento 'boardUpdate'
-        this.io.to(gameId).emit("boardUpdate", updatedGameState);
+        
+        // Emite el estado actualizado a todos en la sala
+        io.to(gameId).emit("boardUpdate", updatedGameState);
       } catch (error) {
         socket.emit("error", { message: error.message });
       }
     });
+    
 
-    // 4. startGame: Inicia el juego
+
+    // Evento para iniciar el juego
     socket.on("startGame", async ({ gameId }) => {
       console.log(`startGame event received from socket ${socket.id} for gameId: ${gameId}`);
       const game = gameService.games[gameId];
@@ -119,7 +104,7 @@ class SocketService {
         }
         game.updateGameState();
         console.log(`Emitiendo evento gameStarted a todos en la sala ${gameId}`);
-        this.io.to(gameId).emit("gameStarted", {
+        io.to(gameId).emit("gameStarted", {
           gameId,
           players: Array.from(game.players.values()),
         });
@@ -130,14 +115,13 @@ class SocketService {
       }
     });
 
-    // 5. gameCountdown: Sincroniza la cuenta regresiva entre clientes
+    // Evento para sincronizar la cuenta regresiva entre clientes
     socket.on("gameCountdown", ({ gameId, countdown }) => {
       console.log(`gameCountdown event recibido de socket ${socket.id} para gameId: ${gameId} con countdown: ${countdown}`);
-      // Reemitir el evento a todos en la sala
-      this.io.to(gameId).emit("gameCountdown", { gameId, countdown });
+      io.to(gameId).emit("gameCountdown", { gameId, countdown });
     });
 
-    // 6. getGameState: Envía el estado actual del juego al cliente que lo solicita
+    // Evento para enviar el estado actual del juego al cliente que lo solicita
     socket.on("getGameState", async ({ gameId }) => {
       const game = gameService.games[gameId];
       if (game) {
@@ -145,13 +129,13 @@ class SocketService {
       }
     });
 
-    // 7. disconnect: Maneja la desconexión del socket y actualiza el juego
+    // Evento para manejar la desconexión del socket
     socket.on("disconnect", () => {
       const connectionInfo = this.connections.get(socket.id);
       if (connectionInfo) {
         const { gameId, playerId } = connectionInfo;
         gameService.removePlayerFromGame(gameId, playerId);
-        this.io.to(gameId).emit("playerLeft", { playerId });
+        io.to(gameId).emit("playerLeft", { playerId });
         this.connections.delete(socket.id);
         console.log(`Connection closed: ${socket.id}`);
       }

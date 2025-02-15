@@ -1,11 +1,10 @@
-/* global localStorage */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Trophy } from "lucide-react";
 import PuzzleBoard from "../Puzzle/PuzzleBoard";
-import socketService from "../../services/socket/socketService";
-import { generateNewEquation } from "../../services/game/equationGenerator";
+import useGameState from "../../hooks/useGameState";
 import "./BoardCell.css";
+import socket from '../../services/socket/socketService';
 
 const BoardCell = () => {
   // ──────────────────────────────
@@ -13,20 +12,16 @@ const BoardCell = () => {
   // ──────────────────────────────
   const { gameId } = useParams();
   const localPlayerId = localStorage.getItem("userId");
-  const localUsername = localStorage.getItem("username")?.trim();
-  console.log("Local player id:", localPlayerId);
 
   // ──────────────────────────────
-  // Limpieza de cache al iniciar un nuevo juego
-  // ──────────────────────────────
-  useEffect(() => {
-    localStorage.removeItem("boardCellState");
-  }, [gameId]);
-
-  // ──────────────────────────────
-  // Estado para mensajes emergentes
+  // Estado para mensajes emergentes y feedback
   // ──────────────────────────────
   const [popupMessage, setPopupMessage] = useState("");
+  const [selectedNumber, setSelectedNumber] = useState(null);
+  const [showFeedback, setShowFeedback] = useState({
+    show: false,
+    isCorrect: false,
+  });
 
   // ──────────────────────────────
   // Obtención de jugadores iniciales (desde el Lobby)
@@ -35,113 +30,44 @@ const BoardCell = () => {
   const initialPlayersFromNav = location.state?.players || [];
 
   // ──────────────────────────────
-  // Función para recuperar el estado guardado en localStorage
-  // Validando que corresponda al juego actual
+  // Inicialización del estado del juego usando el nuevo hook
   // ──────────────────────────────
-  const getSavedState = () => {
-    const saved = localStorage.getItem("boardCellState");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Si el estado guardado no pertenece al juego actual, se descarta
-      if (parsed.gameId && parsed.gameId !== gameId) {
-        return null;
-      }
-      return parsed;
+  const { gameState, updateGameState, isCurrentPlayerTurn } = useGameState(
+    gameId,
+    initialPlayersFromNav
+  );
+
+  const { equation, players, currentTurn, gameStats } = gameState;
+
+  // ──────────────────────────────
+  // Conexión al socket y depuración de estado
+  // ──────────────────────────────
+  
+  useEffect(() => {
+    if (socket) {
+      console.log("Socket conectado:", socket.connected);  // Asegúrate de que la conexión esté activa
+      
+      const handleConnect = () => console.log("Conectado al servidor de sockets");
+      const handleDisconnect = () => console.log("Desconectado del servidor de sockets");
+      
+      socket.on("connect", handleConnect);
+      socket.on("disconnect", handleDisconnect);
+  
+      return () => {
+        socket.off("connect", handleConnect);
+        socket.off("disconnect", handleDisconnect);
+      };
+    } else {
+      console.log("Socket no está disponible");
     }
-    return null;
-  };
-
+  }, []);
+  
   // ──────────────────────────────
-  // Estados iniciales del tablero
-  // ──────────────────────────────
-  const [equation, setEquation] = useState(() => {
-    const savedState = getSavedState();
-    return (
-      savedState?.equation || {
-        left: 9,
-        operator: "x",
-        right: "?",
-        result: 81,
-      }
-    );
-  });
-
-  const [players, setPlayers] = useState(() => {
-    const savedState = getSavedState();
-    return savedState?.players || initialPlayersFromNav;
-  });
-
-  const [currentTurn, setCurrentTurn] = useState(() => {
-    const savedState = getSavedState();
-    return typeof savedState?.currentTurn === "number"
-      ? savedState.currentTurn
-      : 0;
-  });
-
-  const [gameStats, setGameStats] = useState(() => {
-    const savedState = getSavedState();
-    return (
-      savedState?.gameStats || {
-        totalMoves: 0,
-        correctAnswers: 0,
-        bestStreak: 0,
-      }
-    );
-  });
-
-  const [selectedNumber, setSelectedNumber] = useState(null);
-  const [showFeedback, setShowFeedback] = useState({
-    show: false,
-    isCorrect: false,
-  });
-
-  // ──────────────────────────────
-  // Conexión Socket: unirse y escuchar actualizaciones del tablero
+  // Limpieza de cache al iniciar un nuevo juego
   // ──────────────────────────────
   useEffect(() => {
-    if (!gameId) return;
-
-    // Al unirse a un nuevo juego, se limpia la cache
     localStorage.removeItem("boardCellState");
-
-    // En este caso usamos un evento llamado "joinGameBoard" (debes asegurarte
-    // que en el servidor se esté usando la lógica correspondiente, o ajustar el nombre)
-    socketService.emit("joinGameBoard", { gameId });
-
-    // IMPORTANTE: Utilizamos el mismo nombre de evento ("boardUpdate")
-    // que es el que el servidor emite para notificar los cambios.
-    const handleBoardUpdate = (data) => {
-      if (data.gameId === gameId && data.boardState) {
-        const { equation, players, currentTurn, gameStats } = data.boardState;
-        setEquation(equation);
-        setPlayers(players);
-        setCurrentTurn(currentTurn);
-        setGameStats(gameStats);
-      }
-    };
-
-    socketService.on("boardUpdate", handleBoardUpdate);
-
-    return () => {
-      socketService.off("boardUpdate", handleBoardUpdate);
-      socketService.emit("leaveGameBoard", { gameId });
-    };
   }, [gameId]);
-
-  // ──────────────────────────────
-  // Depuración: Mostrar en consola el turno actual
-  // ──────────────────────────────
-  useEffect(() => {
-    if (players.length > 0) {
-      const currentPlayer = players[currentTurn];
-      console.log(
-        "Turno actual:",
-        // Se usa _id, ya que en el servidor se crea el jugador con _id: userId
-        (currentPlayer._id || currentPlayer.id)?.toString().trim(),
-        currentPlayer.username
-      );
-    }
-  }, [currentTurn, players]);
 
   // ──────────────────────────────
   // Generación de la grilla numérica (1 a 9)
@@ -153,34 +79,7 @@ const BoardCell = () => {
   }));
 
   // ──────────────────────────────
-  // Función de validación de respuesta
-  // ──────────────────────────────
-  const validateAnswer = useCallback(
-    (selected) => {
-      switch (equation.operator) {
-        case "x":
-          return equation.left * selected === equation.result;
-        case "+":
-          return equation.left + selected === equation.result;
-        case "-":
-          return equation.left - selected === equation.result;
-        default:
-          return false;
-      }
-    },
-    [equation]
-  );
-
-  // ──────────────────────────────
-  // Función para emitir y guardar el nuevo estado del tablero
-  // ──────────────────────────────
-  const emitBoardUpdate = (boardState) => {
-    socketService.emit("boardUpdate", { gameId, boardState });
-    localStorage.setItem("boardCellState", JSON.stringify(boardState));
-  };
-
-  // ──────────────────────────────
-  // Manejador de selección de número (jugada del jugador)
+  // Manejador de selección de número
   // ──────────────────────────────
   const handleNumberSelect = async (number) => {
     const currentPlayer = players[currentTurn];
@@ -200,65 +99,57 @@ const BoardCell = () => {
       localId
     );
 
-    if (currentPlayerId !== localId) {
+    if (!isCurrentPlayerTurn(localPlayerId)) {
       setPopupMessage("No es tu turno");
       setTimeout(() => setPopupMessage(""), 5000);
       return;
     }
-
-    setSelectedNumber(number);
-    const isCorrect = validateAnswer(number);
-    setShowFeedback({ show: true, isCorrect });
-
-    // Actualización de estadísticas: total de movimientos, respuestas correctas y racha
-    const newGameStats = {
-      ...gameStats,
-      totalMoves: gameStats.totalMoves + 1,
-      correctAnswers: gameStats.correctAnswers + (isCorrect ? 1 : 0),
-      bestStreak: Math.max(
-        gameStats.bestStreak,
-        isCorrect ? (currentPlayer.streak || 0) + 1 : 0
-      ),
-    };
-
-    // Actualización del estado del jugador (puntuación y racha) según si respondió correctamente o no
-    const updatedPlayers = players.map((player, index) => {
-      if (index === currentTurn) {
-        return isCorrect
-          ? {
-              ...player,
-              score: (player.score || 0) + 10,
-              streak: (player.streak || 0) + 1,
-            }
-          : { ...player, streak: 0 };
-      }
-      return player;
-    });
-
-    // Se calcula el nuevo turno y se genera una nueva ecuación
-    const newTurn = (currentTurn + 1) % players.length;
-    const newEquation = generateNewEquation();
-    const boardState = {
-      gameId,
-      equation: newEquation,
-      players: updatedPlayers,
-      currentTurn: newTurn,
-      gameStats: newGameStats,
-    };
-
-    // Se espera 1.5 segundos para mostrar el feedback, luego se actualiza el estado
-    setTimeout(() => {
-      setShowFeedback({ show: false, isCorrect: false });
-      setSelectedNumber(null);
-      // Se actualiza el estado local para reflejar la jugada de inmediato
-      setEquation(newEquation);
-      setPlayers(updatedPlayers);
-      setCurrentTurn(newTurn);
-      setGameStats(newGameStats);
-      // Se emite el nuevo estado del tablero vía socket
-      emitBoardUpdate(boardState);
-    }, 1500);
+    console.log("Socket conectado:", socket.connected);
+    socket.emit("playerMove", { gameId, playerId: localId, selectedNumber: number });
   };
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleBoardUpdate = (updatedGameState) => {
+      // Validate incoming data
+      if (!updatedGameState || typeof updatedGameState !== 'object') return;
+      updateGameState(updatedGameState);
+
+      if (typeof updatedGameState.lastMoveCorrect === "boolean") {
+        setShowFeedback({
+          show: true,
+          isCorrect: updatedGameState.lastMoveCorrect,
+        });
+
+        // Use useRef for the timeout to prevent memory leaks
+        const timeoutId = setTimeout(() => {
+          setShowFeedback({ show: false, isCorrect: false });
+        }, 1500);
+
+        return () => clearTimeout(timeoutId);
+      }
+    };
+
+    socket.on("boardUpdate", handleBoardUpdate);
+
+    return () => {
+      socket.off("boardUpdate", handleBoardUpdate);
+    };
+  }, [socket, updateGameState]); // Added socket dependency
+
+  useEffect(() => {
+    const handleError = (err) => {
+      console.error("Error recibido del servidor:", err);
+      setPopupMessage(err.message);
+      setTimeout(() => setPopupMessage(""), 5000);
+    };
+
+    socket.on("error", handleError);
+    return () => {
+      socket.off("error", handleError);
+    };
+  }, []);
 
   // ──────────────────────────────
   // Renderizado de la interfaz
@@ -294,12 +185,11 @@ const BoardCell = () => {
           </div>
         </div>
 
-        {/* Mensaje de feedback (correcto/incorrecto) */}
+        {/* Mensaje de feedback */}
         {showFeedback.show && (
           <div
-            className={`feedback-message ${
-              showFeedback.isCorrect ? "correct" : "wrong"
-            }`}
+            className={`feedback-message ${showFeedback.isCorrect ? "correct" : "wrong"
+              }`}
           >
             {showFeedback.isCorrect ? (
               <CheckCircle2 className="feedback-icon" />
@@ -314,13 +204,12 @@ const BoardCell = () => {
           {availableNumbers.map(({ value, isDisabled, isSelected }) => (
             <button
               key={value}
-              className={`number-button ${isSelected ? "selected" : ""} ${
-                showFeedback.show && isSelected
+              className={`number-button ${isSelected ? "selected" : ""} ${showFeedback.show && isSelected
                   ? showFeedback.isCorrect
                     ? "correct-answer"
                     : "wrong-answer"
                   : ""
-              }`}
+                }`}
               onClick={() => handleNumberSelect(value)}
               disabled={isDisabled || showFeedback.show}
             >

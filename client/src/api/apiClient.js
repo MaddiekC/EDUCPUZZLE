@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5000/api', // Cambiar con la URL de tu API backend
+  baseURL: 'http://192.168.100.13:5000/api', // Cambiar con la URL de tu API backend
   timeout: 10000,
 });
 

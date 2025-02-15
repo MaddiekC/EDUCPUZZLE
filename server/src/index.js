@@ -1,3 +1,4 @@
+// server/src/index.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -5,12 +6,17 @@ import routes from './routes/index.js';
 import connectDB from '../config/database.js';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import http from 'http';  // Importar http
+import socketService from './services/socketService.js';  // Importar SocketService
 
 // Cargar las variables de entorno
 dotenv.config();
 
 // Crear una instancia de Express
 const app = express();
+
+// Crear el servidor HTTP
+const server = http.createServer(app);
 
 // Middleware: Permitir solicitudes desde cualquier origen, incluso para solicitudes con credenciales
 app.use(cors({
@@ -74,11 +80,14 @@ app.use((req, res) => {
   });
 });
 
+// Inicializar Socket.io con el servidor HTTP
+socketService.initialize(server);
+
 // Definir el puerto del servidor
 const PORT = process.env.PORT || 5000;
 
 // Iniciar el servidor
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
   console.log(`Documentación Swagger disponible en: http://192.168.100.13:5000/api-docs`);
 });

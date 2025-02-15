@@ -71,12 +71,13 @@ class Game {
         id: player._id ? player._id.toString() : player.id,
         username: player.username,
         score: player.score,
-        // Si el jugador tiene método getProgress, se usa; de lo contrario, se devuelve null
         progress: player.getProgress ? player.getProgress() : null,
       })),
       currentPuzzle: this.currentPuzzle ? this.currentPuzzle.getState() : null,
+      lastMoveCorrect: this.lastMoveCorrect ?? null, // <-- Agrega esto
     };
   }
+
 
   resetGame() {
     this.gameState = {
